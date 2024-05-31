@@ -1,4 +1,4 @@
-# run.py
+# app.py
 # Entry point for running the PhraseMaster Flask application
 from app import create_app
 

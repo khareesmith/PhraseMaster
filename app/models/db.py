@@ -4,10 +4,6 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
 import os
-import logging
-
-# Configure logging
-logging.basicConfig(filename='app.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Load environment variables
 from dotenv import load_dotenv
