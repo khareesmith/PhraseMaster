@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PhraseMaster Voting</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://kit.fontawesome.com/00ac27e367.js" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+
+            <div class="container-fluid">
+
+                <a class="navbar-brand" href="{{ url_for('view.index') }}">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="PhraseMaster Logo" height="40"> 
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainnav" aria-controls="mainnav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="mainnav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        {% if 'user' in session %}
+
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#"> Welcome: {{ session['user']['name'] }}</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+                        </li>
+
+                        {% else %}
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login', provider='google') }}"><i class="fa-solid fa-right-to-bracket"></i> Login with Google</a>
+                        </li>
+
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container text-center">
+
+    <!-- Display flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endwith %}
+
+        <!-- Prompt Section -->
+    <div class="prompt">
+        <h1 class="mt-5 display-4">{{ submission1['category'].replace('_', ' ') | title }} Voting</h1>
+        <p class="mb-4 fs-4">Vote for your favorite submission</p>
+        <div class="card text-center m-3">
+            <p class="lead m-2"><em>{{ submission1['challenge'] }}</em></p>
+        </div>
+    </div>
+
+        <!-- Voting Section -->
+        <div class="cards row">
+            <div class="col-md-6 d-flex">
+                <div class="card pb-3 mb-4 flex-fill"> 
+                    <h2 class="m-3 mx-4">{{ submission1['username'] }}</h2>
+                    <p class="p-3"><em>{{ submission1['user_phrase'] }}</em></p>
+                    <div class="mt-auto">
+                    <form method="POST">
+                            <input type="hidden" name="username" value="{{ submission1['username'] }}">
+                            <button type="submit" name="submission_id" value="{{ submission1['id'] }}" class="btn btn-primary">Vote {{ submission1['username'] }}</button>
+                    </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 d-flex">
+                <div class="card pb-3 mb-4 flex-fill">
+                    <h2 class="m-3 mx-4">{{ submission2['username'] }}</h2>
+                    <p class="p-3"><em>{{ submission2['user_phrase'] }}</em></p>
+                    <div class="mt-auto">
+                        <form method="POST">
+                            <input type="hidden" name="username" value="{{ submission2['username'] }}">
+                            <button type="submit" name="submission_id" value="{{ submission2['id'] }}" class="btn btn-primary">Vote {{ submission2['username'] }}</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Section -->
+    <div class="leaderboard-card">
+        <h1>Leaderboard - {{ submission1['category'].replace('_', ' ') | title }}</h1>
+        <ul>
+            {% for entry in leaderboard %}
+            <li>
+                <span>{{ entry['username'] }}</span>
+                <span>{{ entry['total_score'] }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="mt-4 row"> 
+        <form action="{{ url_for('view.vote') }}" method="GET" class="d-flex align-items-center justify-content-center">
+            <div class="form-group me-3" style="width: 180px;">
+                <label for="category">Select New Category:</label>
+                <select name="category" id="category" class="form-select">
+                    <option value="tiny_story">Story</option>
+                    <option value="scene_description">Scene</option>
+                    <option value="specific_word">Word</option>
+                    <option value="rhyming_phrase">Structure</option>
+                    <option value="emotion">Emotion</option>
+                    <option value="dialogue">Dialogue</option>
+                    <option value="idiom">Idiom</option>
+                    <option value="slogan">Slogan</option>
+                    <option value="movie_quote">Movie Quote</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">Vote</button>
+        </form>
+    </div>
+
+    <div class="mt-4"> 
+        <a class="btn btn-outline-primary" href="{{ url_for('view.index') }}">Return Home</a>
+        </div>
+
+    </main>
+
+    <footer class="bg-light text-center py-4 mt-4">
+        <p>&copy; 2024 PhraseMaster. All rights reserved.</p>
+        <div class="social-links">
+            <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="mx-2"><i class="fab fa-instagram"></i></a>
+        </div>
+    </footer>
+
+    {% if 'user' in session %}
+    <script>
+        window.username = "{{ session['user']['name'] }}";
+    </script>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+</body>
+
+</html>
