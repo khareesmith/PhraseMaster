@@ -81,7 +81,7 @@ def calculate_initial_score(phrase, category, original_prompt):
     )
 
     feedback = response.choices[0].message.content
-    print (feedback)
+    
     try:
         score_str = feedback.split("Score:")[1].split("/")[0].strip()
         score = int(score_str)

@@ -49,7 +49,7 @@ def generate_random_username():
         "Lantern", "Map", "Notebook", "Orchid", "Paintbrush", "Quicksand", "Rhinoceros",
         "Skateboard", "Trampoline", "Ukulele", "Volleyball", "Waterfall", "Xylophone",
         "Yogurt", "Zipper", "Anvil", "Barrel", "Clock", "Dumbbell", "Egg", "Fork",
-        "Gong", "Harp", "Ink","Lemon", "Magnet", "Nut", "Olive",
+        "Gong", "Harp", "Ink","Lemon", "Magnet", "Olive",
         "Pickle", "Quiver", "Racket", "Saxophone", "Toaster", "Ukelele", "Violin",
         "Wrench", "X-ray", "Yo-yo", "Zigzag", "Comet", "Cloud", "Galaxy", "Star",
         "Planet", "Meteor", "Voyager", "Explorer", "Albatross", "Badger", "Cat", "Dog",
@@ -66,3 +66,10 @@ def generate_random_username():
     
     random_username = random.choice(adjectives) + " " + random.choice(nouns)
     return random_username
+
+def generate_random_usernames():
+    """
+    Generate a list of three random usernames.
+    """
+    random_usernames = [generate_random_username() for _ in range(3)]
+    return random_usernames

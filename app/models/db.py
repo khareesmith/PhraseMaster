@@ -141,9 +141,9 @@ def insert_submission(session, username, date, user_phrase, category, challenge_
     finally:
         session.close()
 
-def phrase_already_submitted(session, username, category):
+def phrase_already_submitted(session, username, category, date):
     try:
-        result = session.execute(text('SELECT username FROM submissions WHERE username = :username AND category = :category'), {'username': username, 'category': category}).fetchone()
+        result = session.execute(text('SELECT username FROM submissions WHERE username = :username AND category = :category AND date = :date'), {'username': username, 'category': category, 'date': date}).fetchone()
         return result is not None
     except SQLAlchemyError as e:
         print(f"Database operation error: {e}")

@@ -37,13 +37,6 @@ document.addEventListener('DOMContentLoaded', function () {
             promptDisplay.textContent = data.challenge;
             submissionForm.style.display = 'block';
 
-            // Additional debugging
-            console.log('Current Challenge ID:', currentChallengeId);
-            console.log('Current Original Prompt:', currentOriginalPrompt);
-            console.log('Current Category:', currentCategory);
-            console.log('Prompt Display Text:', promptDisplay.textContent);
-            console.log('Submission Form Display:', submissionForm.style.display);
-
         } catch (error) {
             console.error('Error fetching challenge:', error);  // Log any errors
             promptDisplay.textContent = 'Failed to load challenge. Please try again.';
@@ -69,9 +62,10 @@ document.addEventListener('DOMContentLoaded', function () {
         feedbackDisplay.classList.remove('success', 'error');
 
         try {
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             const response = await fetch('/api/submit_phrase', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify({
                     username: window.username, // Use session username
                     user_phrase: userPhrase,

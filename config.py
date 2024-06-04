@@ -10,7 +10,13 @@ class Config:
     Configuration class for the PhraseMaster Flask application.
     """
     # Secret key for session management and other security-related needs
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = os.getenv('SECRET_KEY')
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SECURE = True
+    REMEMBER_COOKIE_HTTPONLY = True
+    
+    DEBUG = False
     
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')

@@ -8,10 +8,6 @@ from ..models.db import get_db_connection, phrase_already_submitted, insert_subm
 from ..utils.score import calculate_initial_score
 from ..utils.login_req import login_required
 from ..utils.challenge import generate_challenge, get_or_create_daily_challenge
-import logging
-
-# Configure logging
-logging.basicConfig(filename='app.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 api_bp = Blueprint('api', __name__)
 
@@ -35,12 +31,11 @@ def generate_category_challenge(category):
     try:
         challenge_id, challenge = get_or_create_daily_challenge(category)
         if challenge_id is None or challenge is None:
-            logging.error("Failed to retrieve or create challenge for category: %s", category)
             return jsonify({'error': 'Failed to retrieve or create challenge'}), 500
         
         return jsonify({'challenge_id': challenge_id, 'challenge': challenge, 'category': category})
     except Exception as e:
-        logging.error("An error occurred while generating the challenge: %s", str(e))
+        print('Error creating challenge: %s' % e)
     return jsonify({'error': 'An error occurred while generating the challenge'}), 500
 
 # Route to generate random challenge. Currently unused
@@ -62,6 +57,7 @@ def submit_phrase():
     """
 
     session_db = get_db_connection()
+    current_date = datetime.now().strftime('%Y-%m-%d')
     
     try:
         data = request.get_json()
@@ -86,7 +82,7 @@ def submit_phrase():
         if len(user_phrase) < 3:
             return jsonify({'error': 'Phrase must be at least 3 characters long.'}), 400
         
-        if phrase_already_submitted(session_db, username, category):
+        if phrase_already_submitted(session_db, username, category, current_date):
             return jsonify({'error': 'You have already submitted a phrase for this category today.'}), 400
 
         initial_score, feedback = calculate_initial_score(user_phrase, category, challenge)
@@ -95,7 +91,6 @@ def submit_phrase():
             return jsonify({'error': 'Missing data'}), 400
         
         # Get the current date and insert into the database
-        current_date = datetime.now().strftime('%Y-%m-%d')
         insert_submission(session_db, username, current_date, user_phrase, category, challenge_id, challenge, initial_score)
     
     except SQLAlchemyError as e:

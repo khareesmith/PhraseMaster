@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, session
+from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from authlib.integrations.flask_client import OAuth
 
@@ -14,9 +15,10 @@ def create_app():
     
     app = Flask(__name__)
     app.config.from_object('config.Config')
+    csrf = CSRFProtect(app)
+    csrf.init_app(app)
     Session()
     
-
     # Initialize OAuth with the application
     oauth = OAuth(app)
     for name, config in app.config['OAUTH_PROVIDERS'].items():

@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask_wtf.csrf import validate_csrf
+from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
 from ..models.db import get_db_connection
 
@@ -29,6 +31,14 @@ def vote():
     username = request.args.get('username')
     
     if request.method == 'POST':
+        
+        # Validate CSRF token
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except ValidationError:
+            flash("Invalid CSRF token.", "error")
+            return redirect(url_for('view.vote', category=category))
+        
         if 'user' not in session:
             flash("You must be logged in to vote.", "error")
             return redirect(url_for('view.vote', category=category))

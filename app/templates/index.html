@@ -119,6 +119,7 @@
                     <div class="card text-center">  
                         <p id="prompt" class="text-center m-3"></p>
                     </div>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="text" id="phraseInput" class="form-control my-3 mx-auto" placeholder="Enter your phrase here...">
                     <button type="button" id="submit_phrase_button" class="btn btn-primary">Submit Phrase</button>
                 </div>

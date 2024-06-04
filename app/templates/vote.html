@@ -77,6 +77,7 @@
                     <p class="p-3"><em>{{ submission1['user_phrase'] }}</em></p>
                     <div class="mt-auto">
                     <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="username" value="{{ submission1['username'] }}">
                             <button type="submit" name="submission_id" value="{{ submission1['id'] }}" class="btn btn-primary">Vote {{ submission1['username'] }}</button>
                     </form>
@@ -90,6 +91,7 @@
                     <p class="p-3"><em>{{ submission2['user_phrase'] }}</em></p>
                     <div class="mt-auto">
                         <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="username" value="{{ submission2['username'] }}">
                             <button type="submit" name="submission_id" value="{{ submission2['id'] }}" class="btn btn-primary">Vote {{ submission2['username'] }}</button>
                         </form>
