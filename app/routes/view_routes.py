@@ -3,6 +3,7 @@ from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
 from ..models.db import get_db_connection
+import bleach
 
 view_bp = Blueprint('view', __name__)
 
@@ -45,17 +46,20 @@ def vote():
         
         # Handle the vote submission
         voted_submission_id = request.form.get('submission_id')
+        voted_submission_id = bleach.clean(voted_submission_id)
     
         # Check if the user is trying to vote on their own submission
         submission_owner = session_db.execute(
             text('SELECT username FROM submissions WHERE id = :id'),
             {'id': voted_submission_id}
         ).scalar()  # Fetches the first column of the first row
+        
 
         if submission_owner == session['user']['name']:
             flash("You cannot vote for your own submission.", "error")
             return redirect(url_for('view.vote', category=category))
         
+        # Update the vote count for the selected submission
         try:
             session_db.execute(
                 text('UPDATE submissions SET votes = votes + 1 WHERE id = :id'),
@@ -120,3 +124,12 @@ def vote():
             session_db.close()
 
     return redirect(url_for('view.index'))
+
+@view_bp.route('/profile', methods=['GET', 'POST'])
+def profile():
+    """Display the user's profile."""
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    return render_template('profile.html', user=user)

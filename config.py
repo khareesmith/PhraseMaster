@@ -16,7 +16,7 @@ class Config:
     REMEMBER_COOKIE_SECURE = True
     REMEMBER_COOKIE_HTTPONLY = True
     
-    DEBUG = False
+    DEBUG = True
     
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')

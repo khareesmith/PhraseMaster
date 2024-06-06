@@ -25,7 +25,8 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
-    name = Column(String, nullable=False)
+    password = Column(String, nullable=True)
+    name = Column(String, unique=True, nullable=True)
     total_votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
     submissions = relationship("Submission", back_populates="user")
 
@@ -37,6 +38,7 @@ class Submission(Base):
     challenge_id = Column(String, ForeignKey('daily_challenges.challenge_id'), nullable=False)
     challenge = Column(Text, nullable=False)
     user_phrase = Column(Text, nullable=True)  # Allow NULL values
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     username = Column(String, nullable=True)
     initial_score = Column(Integer, nullable=True)
     votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
@@ -64,14 +66,6 @@ def get_db_connection():
     except SQLAlchemyError as e:
         print(f"Database connection error: {e}")
         return None
-
-def test_db_connection():
-    try:
-        session = Session()
-        print("Database connection was successful!")
-        session.close()
-    except SQLAlchemyError as e:
-        print(f"Error connecting to the database: {e}")
 
 def get_user_by_email(session, email):
     """
@@ -109,12 +103,13 @@ def create_user(session, email, name, total_votes=0):
     except SQLAlchemyError as e:
         print(f"Database operation error: {e}")
 
-def insert_submission(session, username, date, user_phrase, category, challenge_id, challenge, initial_score):
+def insert_submission(session, user_id, username, date, user_phrase, category, challenge_id, challenge, initial_score):
     """
-    Insert a new submission into the database.
+    Adds a new submission into the database.
 
     Args:
         session (Session): The database session object.
+        user_id (int): The user_id of the user submitting the phrase.
         username (str): The username of the user submitting the phrase.
         date (str): The date of the submission.
         user_phrase (str): The submitted phrase.
@@ -128,22 +123,33 @@ def insert_submission(session, username, date, user_phrase, category, challenge_
     """
     try:
         session.execute(text("""
-            INSERT INTO submissions (username, date, user_phrase, category, challenge_id, challenge, initial_score) 
-            VALUES (:username, :date, :user_phrase, :category, :challenge_id, :challenge, :initial_score)
+            INSERT INTO submissions (user_id, username, date, user_phrase, category, challenge_id, challenge, initial_score) 
+            VALUES (:user_id, :username, :date, :user_phrase, :category, :challenge_id, :challenge, :initial_score)
         """), {
-            'username': username, 'date': date, 'user_phrase': user_phrase, 
+            'user_id': user_id, 'username': username, 'date': date, 'user_phrase': user_phrase, 
             'category': category, 'challenge_id': challenge_id, 
             'challenge': challenge, 'initial_score': initial_score
         })
         session.commit()
     except SQLAlchemyError as e:
         print(f"Database operation error: {e}")
+        session.rollback()
+        raise
+
+def update_username(session, user_id, new_username):
+    try:
+        session.execute(text("UPDATE users SET name = :new_username WHERE id = :user_id"), {'new_username': new_username, 'user_id': user_id})
+        session.execute(text("UPDATE submissions SET username = :new_username WHERE user_id = :user_id"), {'new_username': new_username, 'user_id': user_id})
+        session.commit()
+    except SQLAlchemyError as e:
+        print(f"Database operation error: {e}")
+        session.rollback()
     finally:
         session.close()
 
-def phrase_already_submitted(session, username, category, date):
+def phrase_already_submitted(session, user_id, category, date):
     try:
-        result = session.execute(text('SELECT username FROM submissions WHERE username = :username AND category = :category AND date = :date'), {'username': username, 'category': category, 'date': date}).fetchone()
+        result = session.execute(text('SELECT user_id FROM submissions WHERE user_id = :user_id AND category = :category AND date = :date'), {'user_id': user_id, 'category': category, 'date': date}).fetchone()
         return result is not None
     except SQLAlchemyError as e:
         print(f"Database operation error: {e}")
@@ -154,6 +160,11 @@ def phrase_already_submitted(session, username, category, date):
 # Function to create tables if they do not exist
 def create_tables():
     Base.metadata.create_all(engine)
+    
+# Function to drop tables if needed
+def drop_tables():
+    Base.metadata.drop_all(engine)
 
-# Call this function initially to create tables if they don't exist
+# Call this function initially to drop and create tables if they don't exist
+# drop_tables()
 create_tables()

@@ -53,11 +53,11 @@ def calculate_initial_score(phrase, category, original_prompt):
             Evaluation:
 
             Strengths:
-            - Vivid imagery
-            - Creative use of personification
+            Vivid imagery
+            Creative use of personification
             
             Weaknesses:
-            - Could benefit from more specific details (e.g., types of stars, moon phases)
+            Could benefit from more specific details (e.g., types of stars, moon phases)
 
             Score: 8
             
@@ -65,6 +65,7 @@ def calculate_initial_score(phrase, category, original_prompt):
             * Your feedback should be concise, focused, and easily digestible within 25 seconds.
             * Be objective and fair in your assessment, considering both strengths and weaknesses.
             * The numerical score should reflect your overall judgment of the phrase's quality and effectiveness within its category and prompt.
+            * Do not include any dashes or other characters in the lists in the Strength and Weakness sections. Have the heading and then immediately list the items on separate lines.
             """
         },
         {

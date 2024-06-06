@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" data-bs-theme="dark">
     <title>PhraseMaster Voting</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,35 +13,43 @@
 
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-
             <div class="container-fluid">
-
                 <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="PhraseMaster Logo" height="40"> 
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="PhraseMaster Logo" height="40">
                 </a>
-
+    
+                {% if 'user' in session %}
+                <span class="navbar-text ms-3">
+                    Welcome: {{ session['user']['name'] }}
+                </span>
+                {% endif %}
+    
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainnav" aria-controls="mainnav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-
-                <div class="collapse navbar-collapse" id="mainnav">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+    
+                <div class="collapse navbar-collapse text-center justify-content-end" id="mainnav">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('view.vote', category=category) }}"><i class="fa-solid fa-check-to-slot"></i> Voting</a>
+                        </li>
                         {% if 'user' in session %}
-
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="#"> Welcome: {{ session['user']['name'] }}</a>
+                            <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
                         </li>
-
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+                            <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
                         </li>
-
                         {% else %}
-
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login', provider='google') }}"><i class="fa-solid fa-right-to-bracket"></i> Login with Google</a>
+                            <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
                         </li>
-
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
+                        </li>
                         {% endif %}
                     </ul>
                 </div>
@@ -102,7 +110,7 @@
 
         <!-- Leaderboard Section -->
     <div class="leaderboard-card">
-        <h1>Leaderboard - {{ submission1['category'].replace('_', ' ') | title }}</h1>
+        <h1><p id='datetime'></p> Leaderboard - {{ submission1['category'].replace('_', ' ') | title }}</h1>
         <ul>
             {% for entry in leaderboard %}
             <li>

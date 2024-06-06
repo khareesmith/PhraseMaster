@@ -12,9 +12,21 @@ main {
     flex: 1; /* Allow main content to grow and take up available space */
 }
 
-h1 {
+h1, #datetime {
     color: #2980b9;
     margin-top: 40px;
+}
+
+#feedback ul {
+    list-style-type: none;
+}
+
+#clear_feedback_button {
+    margin: 0 auto; /* Center the button horizontally */
+}
+
+#datetime {
+    display: inline;
 }
 
 .category-buttons button {

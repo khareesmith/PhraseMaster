@@ -6,10 +6,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const submitPhraseButton = document.getElementById('submit_phrase_button');
     const feedbackDisplay = document.getElementById('feedback');
     const submissionForm = document.getElementById('submissionForm');
+    const clearFeedbackButton = document.getElementById('clear_feedback_button');
 
-    let currentChallengeId = '';
-    let currentCategory = '';
-    let currentOriginalPrompt = '';
+    clearFeedbackButton.textContent = 'Continue';
+    clearFeedbackButton.classList.add('btn', 'btn-secondary', 'mt-3', 'm-0', 'm-auto');
+    clearFeedbackButton.style.display = 'none'; // Initially hidden
+
+    feedbackDisplay.parentNode.insertBefore(clearFeedbackButton, feedbackDisplay.nextSibling);
 
     /**
      * Fetch and display a challenge for the selected category.
@@ -23,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         feedbackDisplay.textContent = '';
         feedbackDisplay.style.display = 'none';
+        clearFeedbackButton.style.display = 'none';
         phraseInput.value = '';
         promptDisplay.textContent = 'Loading...';
         challengeDisplay.style.display = 'block';  // Ensure the challenge display is visible
@@ -30,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch(`/api/generate_challenge/${category}`);
             const data = await response.json();
-            console.log('Challenge Data:', data);  // Log the challenge data for debugging
             currentChallengeId = data.challenge_id;
             currentOriginalPrompt = data.challenge;
             currentCategory = data.category;
@@ -67,7 +70,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify({
-                    username: window.username, // Use session username
+                    user_id: sessionStorage.getItem('user_id'),  // Use session user_id
+                    username: sessionStorage.getItem('username'),  // Use session username
+                    user_phrase: userPhrase,
                     user_phrase: userPhrase,
                     challenge_id: currentChallengeId,
                     original_prompt: currentOriginalPrompt,
@@ -77,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Error submitting phrase:', errorData);  // Log any errors
+                console.error('Error submitting phrase:', errorData);
                 feedbackDisplay.textContent = `Error: ${errorData.error}`;
                 feedbackDisplay.style.display = 'block';
                 feedbackDisplay.classList.remove('success');
@@ -86,15 +91,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const data = await response.json();
-            console.log('Submission Feedback:', data);  // Log the feedback data for debugging
-            feedbackDisplay.textContent = data.feedback;
+            feedbackDisplay.innerHTML = formatFeedback(data.feedback);
             feedbackDisplay.style.display = 'block';
             feedbackDisplay.classList.remove('error');
             feedbackDisplay.classList.add('success');
+            clearFeedbackButton.style.display = 'block';
 
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 10000);
         } catch (error) {
             console.error('Error submitting phrase:', error);  // Log any errors
             feedbackDisplay.textContent = 'Failed to submit phrase. Please try again.';
@@ -104,6 +106,40 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function formatFeedback(feedback) {
+        const feedbackParts = feedback.split('\n\n');
+        let strengths = '';
+        let weaknesses = '';
+        let score = '';
+
+        console.log(feedbackParts);
+
+        feedbackParts.forEach(part => {
+            if (part.trim().startsWith('Strengths:')) {
+                strengths = part.replace('Strengths:', '').trim();
+            } else if (part.trim().startsWith('Weaknesses:')) {
+                weaknesses = part.replace('Weaknesses:', '').trim();
+            } else if (part.trim().startsWith('Score:')) {
+                score = part.replace('Score:', '').trim();
+            }
+        });
+
+        return `
+            <strong>Evaluation By GPT</strong>
+            <p class='mt-2 mb-0'><strong>Strengths:</strong></p>
+            <ul class='list-group list-group-flush'>${strengths.split('\n').map(item => item.trim() ? `<li class='list-group-item m-0 p-0'>${item.trim()}</li>` : '').join('')}</ul>
+            <p class='mt-4 mb-0'><strong>Weaknesses:</strong></p>
+            <ul class='list-group list-group-flush'>${weaknesses.split('\n').map(item => item.trim() ? `<li class='list-group-item m-0 p-0'>${item.trim()}</li>` : '').join('')}</ul>
+            <p class='mt-3'><strong>Score:</strong> ${score}</p>
+        `;
+    }
+
+    clearFeedbackButton.addEventListener('click', () => {
+        feedbackDisplay.innerHTML = '';
+        feedbackDisplay.style.display = 'none';
+        clearFeedbackButton.style.display = 'none'; // Hide the button after clearing
+    });
+
     // Add event listeners to category buttons
     categoryButtons.forEach(button => {
         button.addEventListener('click', () => fetchChallenge(button.id));
@@ -111,4 +147,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add event listener to the submit button
     submitPhraseButton.addEventListener('click', submitPhrase);
+
+    let currentChallengeId = '';
+    let currentCategory = '';
+    let currentOriginalPrompt = '';
+
+    var todaydate = new Date();
+    var day = todaydate.getDate();
+    var month = todaydate.getMonth() + 1;
+    var year = todaydate.getFullYear();
+    var datestring = day + "/" + month + "/" + year;
+
+    // Insert date and time into HTML
+    document.getElementById("datetime").innerHTML = datestring;
 });
