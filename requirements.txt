@@ -106,6 +106,7 @@ langsmith==0.0.33
 lief==0.13.2
 loguru==0.7.0
 lxml==4.9.2
+mailtrap==2.0.1
 Markdown==3.3.7
 markdown-it-py==3.0.0
 MarkupSafe==2.1.5
@@ -253,3 +254,5 @@ wsproto==1.2.0
 WTForms==3.1.2
 yarl==1.9.2
 zipp==3.15.0
+zxcvbn==4.4.28
+zxcvbn-python==4.4.24

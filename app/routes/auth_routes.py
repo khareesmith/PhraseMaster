@@ -1,9 +1,12 @@
 from flask import Blueprint, redirect, url_for, session, current_app, render_template, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_wtf.csrf import validate_csrf
+from flask_wtf.csrf import validate_csrf, CSRFError
 from authlib.integrations.flask_client import OAuthError
-from ..models.db import get_db_connection, update_username, User
+from ..models.db import get_db_connection, User
 from ..utils.random_username import generate_random_usernames
+from ..utils.email import send_verification_email, is_valid_email
+from ..utils.token import generate_confirmation_token, confirm_token
+from ..utils.auth import is_strong_password
 from sqlalchemy.sql import text
 from sqlalchemy.exc import SQLAlchemyError
 import bleach
@@ -14,7 +17,11 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        validate_csrf(request.form.get('csrf_token'))
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except CSRFError:
+            flash("Invalid CSRF token", "error")
+            return render_template('auth/register.html')
         
         # Validate and sanitize email and password
         email = bleach.clean(request.form['email'])
@@ -23,37 +30,92 @@ def register():
         # Validate email and password
         if not email or not password:
             flash("Email and password are required.", "error")
-            return render_template('register.html')
+            return render_template('auth/register.html')
         
-        hashed_password = generate_password_hash(password)
+        # Validate email format
+        if not is_valid_email(email):
+            flash("Invalid email format.", "error")
+            return render_template('auth/register.html')
+
+        # Validate password strength
+        password_result = is_strong_password(password)
+        if password_result['score'] < 3:
+            suggestions = " ".join(password_result['feedback']['suggestions'])
+            flash(f"Password is too weak. Suggestions: {suggestions}", "error")
+            return render_template('auth/register.html')
         
-        session_db = get_db_connection()
         try:
-            user = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email}).fetchone()
-            if user:
-                flash('Email address already registered', "error")
-                return render_template('register.html')
+            with get_db_connection() as session_db:
+                # Check if the email is already registered
+                existing_user = session_db.execute(
+                    text('SELECT * FROM users WHERE email = :email'), {'email': email}
+                ).fetchone()
+                if existing_user:
+                    flash("Email is already registered.", "error")
+                    return render_template('auth/register.html')
+                
+                # New user registration
+                new_user = User(email=email, email_verified=False)
+                new_user.set_password(password)
+                session_db.add(new_user)
+                session_db.commit()
+                
+                token = generate_confirmation_token(new_user.email)
+                confirm_url = url_for('auth.confirm_email', token=token, _external=True)
+                html = render_template('auth/confirm_email.html', confirm_url=confirm_url)
+                send_verification_email([new_user.email], html)
             
-            session_db.execute(text('INSERT INTO users (email, password) VALUES (:email, :password)'), {'email': email, 'password': hashed_password})
-            session_db.commit()
-            
-            session['pending_user'] = {'email': email}
-            random_usernames = generate_random_usernames()
-            session['pending_user'] = {'email': email, 'usernames': random_usernames}
-            session.modified = True
-            return redirect(url_for('auth.choose_username'))
+                flash('A verification email has been sent to your email address.', 'success')
+                return redirect(url_for('auth.login'))
+                # random_usernames = generate_random_usernames()
+                # session['pending_user'] = {'email': email, 'usernames': random_usernames}
+                # session.modified = True
+                # return redirect(url_for('auth.choose_username'))
         
         except SQLAlchemyError as e:
             print(f"Database Error: {e}")
             session_db.rollback()
             return "Database error", 500
         
-    return render_template('register.html')
+    return render_template('auth/register.html')
+
+@auth_bp.route('/confirm/<token>', methods=['GET', 'POST'])
+def confirm_email(token):
+    try:
+        email = confirm_token(token)
+    except:
+        flash('The confirmation link is invalid or has expired.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    with get_db_connection() as session_db:
+        user = session_db.execute(
+            text('SELECT * FROM users WHERE email = :email'), {'email': email}
+        ).fetchone()
+        
+        if user is None:
+            flash('Account not found.', 'error')
+            return redirect(url_for('auth.register'))
+
+        if user.email_verified:
+            flash('Account already confirmed. Please login.', 'success')
+        else:
+            session_db.execute(
+                text('UPDATE users SET email_verified = :email_verified WHERE email = :email'), 
+                {'email_verified': True, 'email': email}
+            )
+            session_db.commit()
+            flash('You have confirmed your account. Thanks!', 'success')
+    
+    return redirect(url_for('auth.login'))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':      
-        validate_csrf(request.form.get('csrf_token'))
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except CSRFError:
+            flash("Invalid CSRF token", "error")
+            return render_template('auth/login.html')
         
         # Validate and sanitize email and password
         email = bleach.clean(request.form['email'])
@@ -62,30 +124,46 @@ def login():
         if not email or not password:
             flash('Email and password are required', "error")
             return redirect(url_for('auth.login'))
-        
-        session_db = get_db_connection()
         try:
-            result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email})
-            user = result.fetchone()
+            with get_db_connection() as session_db:
+                result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email})
+                user = result.fetchone()
             
             if not user:
                 flash('User does not exist. Please register.', "error")
                 return redirect(url_for('auth.login'))
             
-            if user:
-                user = dict(zip(result.keys(), user))
+            user_dict = dict(zip(result.keys(), user))
             
-            if user and check_password_hash(user['password'], password):
-                session['user'] = {'id': user['id'], 'name': user['name'], 'email': user['email']}
-                session.modified = True 
+            if not user_dict['email_verified']:
+                flash('Please verify your email address before logging in.', 'error')
+                session['unverified_user'] = user_dict['email']
+                return render_template('auth/login.html', unverified=True)
+            
+            db_user = User(
+                id=user_dict['id'],
+                email=user_dict['email'],
+                password_hash=user_dict['password_hash'],
+                name=user_dict['name'],
+                total_votes=user_dict['total_votes'],
+                email_verified=user_dict['email_verified']
+            )
+            
+            if db_user.check_password(password):
+                session['user'] = {'id': db_user.id, 'name': db_user.name, 'email': db_user.email}
+                session.modified = True
+                if db_user.name is None:
+                    # random_usernames = generate_random_usernames()
+                    # session['pending_user'] = {'email': email, 'usernames': random_usernames}
+                    return redirect(url_for('auth.choose_username'))
                 return redirect(url_for('view.index'))
             else:
                 flash('Invalid email or password', "error")
                 return redirect(url_for('auth.login'))
         except SQLAlchemyError as e:
-            print(f"Database Error: {e}")
-            return "Database error", 500
-    return render_template('login.html')
+            flash(f"An error occurred while processing your request: {e}", "error")
+            return render_template('auth/login.html')
+    return render_template('auth/login.html')
 
 @auth_bp.route('/login/<provider>', methods=['GET', 'POST'])
 def login_provider(provider):
@@ -124,15 +202,17 @@ def authorize(provider):
         user = result.fetchone()
         
         if not user:
-            new_user = User(email=resp['email'], name=None)
+            random_password = User.generate_random_password()
+            new_user = User(email=resp['email'], name=None, google_user=True)
+            new_user.set_password(random_password)
             session_db.add(new_user)
-            session_db.commit()  # Ensure user is committed to the database
+            session_db.commit()
             user = new_user
             session['pending_user'] = {'email': resp['email'], 'usernames': generate_random_usernames()}
             return redirect(url_for('auth.choose_username'))
     
         if user:
-            user = dict(zip(result.keys(), user))  # Convert result to dictionary
+            user = dict(zip(result.keys(), user))
             session['user'] = {'id': user['id'], 'name': user['name'], 'email': user['email']}
             session.modified = True
             session_db.commit()
@@ -150,28 +230,22 @@ def authorize(provider):
 
 @auth_bp.route('/choose_username', methods=['GET', 'POST'])
 def choose_username():
-    print("Inside choose_username route")
     """Display username choices and handle the selection."""
     
     # Check if a user is logged in
     user = session.get('user')
-    print(f"User is logged in: {user}")
     pending_user = session.get('pending_user')
-    print(f"Pending user: {pending_user}")
     
     if request.method == 'POST':
 
         validate_csrf(request.form.get('csrf_token'))
         # Validate and sanitize username
         username = bleach.clean(request.form['username'])
-        print(f"Username: {username}")
         
         if pending_user:
             email = pending_user.get('email')
-            print(f"Email for Pending User: {email}")
         elif user:
             email = user.get('email')
-            print(f"Email for User: {email}")
         else:
             return redirect(url_for('auth.login'))
 
@@ -179,12 +253,9 @@ def choose_username():
         try:
             with session_db.no_autoflush:
                 user_record = session_db.query(User).filter_by(email=email).one()
-                print(f"User record: {user_record}")
             
                 if user_record:
                     user_id = user_record.id
-                    old_username = user_record.name
-                    print(f"Old username: {old_username}")
                     user_record.name = username
                     
                     # Update submissions with the new username
@@ -193,13 +264,13 @@ def choose_username():
             session_db.commit()
             
             session['pending_user']['username'] = username
-            session['user'] = {'id': user_id, 'name': user_record.name, 'email': email} # Set user session
+            session['user'] = {'id': user_id, 'name': user_record.name, 'email': email}
             session.pop('pending_user', None)
-            session.modified = True  # Ensure session is marked as modified
+            session.modified = True
             return redirect(url_for('view.index'))
         
         except SQLAlchemyError as e:
-            print(f"Database Error: {e}")  # Log the error for debugging
+            print(f"Database Error: {e}")
             session_db.rollback()
             return "Database error", 500
 
@@ -213,7 +284,7 @@ def choose_username():
         session['pending_user'] = {'email': user['email'], 'usernames': usernames}
         session.modified = True
 
-    return render_template('choose_username.html', usernames=usernames)
+    return render_template('profile/choose_username.html', usernames=usernames)
 
 @auth_bp.route('/generate_usernames')
 def generate_usernames():
@@ -227,63 +298,6 @@ def generate_usernames():
     session['pending_user']['usernames'] = random_usernames
     session.modified = True  # Mark the session as modified to ensure changes are saved
     return redirect(url_for('auth.choose_username'))
-
-@auth_bp.route('/update_username', methods=['GET', 'POST'])
-
-def update_username():
-    print("Inside update_username route")
-
-    # """Update the user's username."""
-    # validate_csrf(request.form.get('csrf_token'))
-    
-    def set_foreign_key_checks(dbsession, enable=True):
-        dbsession.execute(text(f"SET session_replication_role = {'DEFAULT' if enable else 'REPLICA'}"))
-    
-    new_username = request.form.get('new_username')
-    user = session.get('user')
-    
-    if not user:
-        return redirect(url_for('auth.login'))
-    
-    email = user['email']
-    old_username = user['name']
-    
-    session_db = get_db_connection()
-    try:
-        # Begin a transaction
-        with session_db.begin():
-            # Temporarily disable foreign key checks
-            set_foreign_key_checks(session_db, enable=False)
-            print("Disabled foreign key checks")
-
-            # Update the submissions associated with this user first
-            session_db.execute(text('UPDATE submissions SET username = :new_username WHERE username = :old_username'), {'new_username': new_username, 'old_username': old_username})
-            print("Updated submissions successfully")
-
-            # Then, update the username in the users table
-            session_db.execute(text('UPDATE users SET name = :name WHERE email = :email'), {'name': new_username, 'email': email})
-            print("Updated users successfully")
-            
-            # Re-enable foreign key checks
-            set_foreign_key_checks(session_db, enable=True)
-            print("Re-enabled foreign key checks")
-
-        # Commit the transaction
-        session_db.commit()
-        print("Transaction committed successfully")
-        
-        # Update session with new username
-        session['user']['name'] = new_username
-        session.modified = True
-        
-        flash('Username updated successfully', 'success')
-        return redirect(url_for('view.profile'))
-    
-    except SQLAlchemyError as e:
-        print(f"Database Error: {e}")
-        session_db.rollback()
-        flash('An error occurred while updating your username. Please try again.', 'error')
-        return redirect(url_for('view.profile'))
 
 @auth_bp.route('/change_password', methods=['GET', 'POST'])
 def change_password():
@@ -302,7 +316,7 @@ def change_password():
         else:
             user_record = None
         
-        if not user_record or user_record['password'] is None:
+        if not user_record or user_record['google_user']:
             flash('You cannot change your password here. Please use Google to manage your account.', 'error')
             return redirect(url_for('view.profile'))
         
@@ -316,12 +330,16 @@ def change_password():
                 flash('New passwords do not match', 'error')
                 return redirect(url_for('auth.change_password'))
             
-            if not check_password_hash(user_record['password'], current_password):
+            if current_password == new_password:
+                flash('New password must be different from the current password', 'error')
+                return redirect(url_for('auth.change_password'))
+            
+            if not check_password_hash(user_record['password_hash'], current_password):
                 flash('Current password is incorrect', 'error')
                 return redirect(url_for('auth.change_password'))
             
             hashed_password = generate_password_hash(new_password)
-            session_db.execute(text('UPDATE users SET password = :password WHERE email = :email'), {'password': hashed_password, 'email': user['email']})
+            session_db.execute(text('UPDATE users SET password_hash = :password_hash WHERE email = :email'), {'password_hash': hashed_password, 'email': user['email']})
             session_db.commit()
             
             flash('Password updated successfully', 'success')
@@ -334,8 +352,39 @@ def change_password():
     finally:
         session_db.close()
     
-    return render_template('change_password.html')
+    return render_template('profile/change_password.html')
 
+@auth_bp.route('/resend_verification', methods=['POST'])
+def resend_verification():
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+    except CSRFError:
+        flash("Invalid CSRF token", "error")
+        return redirect(url_for('auth.login'))
+    
+    email = session.get('unverified_user')
+    if not email:
+        flash('No unverified email found.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        with get_db_connection() as session_db:
+            user = session_db.execute(
+                text('SELECT * FROM users WHERE email = :email'), {'email': email}
+            ).fetchone()
+            
+            if user and not user.email_verified:
+                token = generate_confirmation_token(email)
+                confirm_url = url_for('auth.confirm_email', token=token, _external=True)
+                html = render_template('auth/confirm_email.html', confirm_url=confirm_url)
+                send_verification_email([email], html)
+                flash('A new verification email has been sent.', 'success')
+            else:
+                flash('User not found or already verified.', 'error')
+    except SQLAlchemyError as e:
+        flash(f"An error occurred: {e}", 'error')
+    
+    return redirect(url_for('auth.login'))
 
 @auth_bp.route('/logout')
 def logout():

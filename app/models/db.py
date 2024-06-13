@@ -1,9 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Date, BigInteger, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, Date, BigInteger, ForeignKey, Boolean
+from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer as Serializer
+from flask import current_app
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
-import os
+import os, string, random
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -23,24 +26,49 @@ Session = sessionmaker(bind=engine)
 # Define the User model
 class User(Base):
     __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=True)
-    name = Column(String, unique=True, nullable=True)
+    id = Column(Integer, index=True, primary_key=True)
+    email = Column(String(64), unique=True, nullable=False)
+    password_hash = Column(String(256), nullable=True)
+    name = Column(String(128), unique=True, nullable=True)
     total_votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    email_verified = Column(Boolean, nullable=False, default=True, server_default=text("True"))
+    google_user = Column(Boolean, nullable=False, default=False, server_default=text("False"))
     submissions = relationship("Submission", back_populates="user")
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    def get_verification_token(self, expires_sec=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_sec)
+        return s.dumps({'user_id': self.id}).decode('utf-8')
+    
+    def generate_random_password(length=12):
+        characters = string.ascii_letters + string.digits + string.punctuation
+        random_password = ''.join(random.choice(characters) for i in range(length))
+        return random_password
 
+    @staticmethod
+    def verify_verification_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            user_id = s.loads(token)['user_id']
+        except:
+            return None
+        return User.query.get(user_id)
 class Submission(Base):
     __tablename__ = 'submissions'
     id = Column(BigInteger, primary_key=True)
-    date = Column(Date, nullable=False)
-    category = Column(String, nullable=False)
-    challenge_id = Column(String, ForeignKey('daily_challenges.challenge_id'), nullable=False)
+    date = Column(Date, nullable=False, index=True)
+    category = Column(String(64), nullable=False)
+    challenge_id = Column(String(128), ForeignKey('daily_challenges.challenge_id'), nullable=False)
     challenge = Column(Text, nullable=False)
-    user_phrase = Column(Text, nullable=True)  # Allow NULL values
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    username = Column(String, nullable=True)
-    initial_score = Column(Integer, nullable=True)
+    user_phrase = Column(Text, nullable=True, default="")
+    user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=False)
+    username = Column(String(128), nullable=True)
+    initial_score = Column(Integer, nullable=False, default=0, server_default=text("0"))
     votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
     user = relationship("User", back_populates="submissions")
 
@@ -166,5 +194,5 @@ def drop_tables():
     Base.metadata.drop_all(engine)
 
 # Call this function initially to drop and create tables if they don't exist
-# drop_tables()
+drop_tables()
 create_tables()

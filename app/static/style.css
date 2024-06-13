@@ -167,6 +167,28 @@ h1, #datetime {
     color: #555;
 }
 
+/* Password Strength Meter Styles */
+.strength-meter {
+    height: 10px;
+    background-color: lightgray;
+    border-radius: 4px;
+    width: 100%;
+    margin-top: 5px;
+    max-width: 45rem;
+}
+.strength-meter div {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width 0.4s ease-in-out;
+}
+
+.strength-0 { background-color: red; width: 25%; }
+.strength-1 { background-color: orange; width: 50%; }
+.strength-2 { background-color: yellow; width: 75%; }
+.strength-3 { background-color: lightgreen; width: 100%; }
+.strength-4 { background-color: green; width: 100%; }
+
 /* Footer Styling */
 footer {
     text-align: center;

@@ -10,13 +10,11 @@ class Config:
     Configuration class for the PhraseMaster Flask application.
     """
     # Secret key for session management and other security-related needs
-    SECRET_KEY = os.getenv('SECRET_KEY')
+    SECRET_KEY = os.getenv('SECRET_KEY') or 'you-will-never-guess'
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SECURE = True
     REMEMBER_COOKIE_HTTPONLY = True
-    
-    DEBUG = True
     
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
@@ -24,6 +22,16 @@ class Config:
     
     # OPENAI API Key
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    
+    # Mail configuration
+    MAIL_SERVER = 'live.smtp.mailtrap.io'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USE_SSL = False
+    MAIL_USERNAME = 'api'
+    MAIL_PASSWORD = 'a0fd7145dd73bbde6a301aee7805ee58'
+    
+    SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT')
     
     # OAuth provider configurations
     OAUTH_PROVIDERS = {

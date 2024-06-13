@@ -12,7 +12,7 @@ def index():
     """
     Render the index page.
     """
-    return render_template('index.html')
+    return render_template('main/index.html')
 
 @view_bp.route('/vote/', methods=['GET', 'POST'])
 def vote():
@@ -71,7 +71,7 @@ def vote():
         except Exception as e:
             session_db.rollback()
             flash("An error occurred while casting your vote.", "error")
-            return render_template('error.html', error_message=f"An error occurred: {e}")
+            return render_template('main/error.html', error_message=f"An error occurred: {e}")
         finally:
             session_db.close()
 
@@ -84,7 +84,7 @@ def vote():
             ).fetchone()
             
             if challenge_result == None:
-                return render_template('error.html', error_message='There are no submissions in this category today. Go submit something!')
+                return render_template('main/error.html', error_message='There are no submissions in this category today. Go submit something!')
 
             if challenge_result:
                 challenge_id = challenge_result[0]  # Accessing the first element in the tuple directly
@@ -100,7 +100,7 @@ def vote():
                 submissions = [{column: value for column, value in zip(['id', 'username', 'category', 'challenge', 'user_phrase', 'votes'], submission)} for submission in submissions_result]
 
                 if len(submissions) < 2:
-                    return render_template('error.html', error_message='Not enough submissions to vote on.')
+                    return render_template('main/error.html', error_message='Not enough submissions to vote on.')
                 
                 leaderboard_result = session_db.execute(
                     text('''
@@ -116,10 +116,10 @@ def vote():
 
                 leaderboard = [{column: value for column, value in zip(['username', 'total_score'], entry)} for entry in leaderboard_result]
                 
-                return render_template('vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
+                return render_template('votes/vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
 
         except Exception as e:
-            return render_template('error.html', error_message=f"An error occurred: {e}")
+            return render_template('main/error.html', error_message=f"An error occurred: {e}")
         finally:
             session_db.close()
 
@@ -132,4 +132,11 @@ def profile():
     if not user:
         return redirect(url_for('auth.login'))
 
-    return render_template('profile.html', user=user)
+    return render_template('profile/profile.html', user=user)
+
+@view_bp.route('/confirm_email', methods=['GET'])
+def confirm_email():
+    """
+    Render the confirm email page.
+    """
+    return render_template('auth/confirm_email.html')

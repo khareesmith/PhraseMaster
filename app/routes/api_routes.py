@@ -1,14 +1,13 @@
 from flask import Blueprint, jsonify, request, session
 from datetime import datetime
-import uuid
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
 import bleach
 
 from ..models.db import get_db_connection, phrase_already_submitted, insert_submission
 from ..utils.score import calculate_initial_score
-from ..utils.login_req import login_required
-from ..utils.challenge import generate_challenge, get_or_create_daily_challenge
+from ..utils.auth import login_required
+from ..utils.challenge import get_or_create_daily_challenge
 
 api_bp = Blueprint('api', __name__)
 
