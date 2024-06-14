@@ -58,6 +58,8 @@ class User(Base):
         except:
             return None
         return User.query.get(user_id)
+    
+# Define the Submission model    
 class Submission(Base):
     __tablename__ = 'submissions'
     id = Column(BigInteger, primary_key=True)
@@ -80,7 +82,8 @@ class Challenge(Base):
     category = Column(String, nullable=False)
     original_challenge = Column(Text, nullable=False)
     date = Column(Date, nullable=False)
-    
+
+# Function to create a database connection
 def get_db_connection():
     """
     Create a session to the PostgreSQL database.
@@ -95,6 +98,7 @@ def get_db_connection():
         print(f"Database connection error: {e}")
         return None
 
+# Function to get a user by email
 def get_user_by_email(session, email):
     """
     Retrieve a user from the database by email.
@@ -113,6 +117,7 @@ def get_user_by_email(session, email):
         print(f"Database operation error: {e}")
         return None
 
+# Function to create a new user
 def create_user(session, email, name, total_votes=0):
     """
     Create a new user in the database.
@@ -131,6 +136,7 @@ def create_user(session, email, name, total_votes=0):
     except SQLAlchemyError as e:
         print(f"Database operation error: {e}")
 
+#Function to insert a submission
 def insert_submission(session, user_id, username, date, user_phrase, category, challenge_id, challenge, initial_score):
     """
     Adds a new submission into the database.
@@ -164,6 +170,7 @@ def insert_submission(session, user_id, username, date, user_phrase, category, c
         session.rollback()
         raise
 
+# Function to update a username
 def update_username(session, user_id, new_username):
     try:
         session.execute(text("UPDATE users SET name = :new_username WHERE id = :user_id"), {'new_username': new_username, 'user_id': user_id})
@@ -175,6 +182,7 @@ def update_username(session, user_id, new_username):
     finally:
         session.close()
 
+# Function to check if a phrase has already been submitted
 def phrase_already_submitted(session, user_id, category, date):
     try:
         result = session.execute(text('SELECT user_id FROM submissions WHERE user_id = :user_id AND category = :category AND date = :date'), {'user_id': user_id, 'category': category, 'date': date}).fetchone()
@@ -193,6 +201,6 @@ def create_tables():
 def drop_tables():
     Base.metadata.drop_all(engine)
 
-# Call this function initially to drop and create tables if they don't exist
-drop_tables()
+# Call these functions initially to drop and create tables if they don't exist
+# drop_tables()
 create_tables()

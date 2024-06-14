@@ -31,6 +31,7 @@ class Config:
     MAIL_USERNAME = 'api'
     MAIL_PASSWORD = ''
     
+    # Security configuration
     SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT')
     
     # OAuth provider configurations

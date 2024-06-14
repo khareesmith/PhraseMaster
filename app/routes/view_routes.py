@@ -5,8 +5,10 @@ from sqlalchemy.sql import text
 from ..models.db import get_db_connection
 import bleach
 
+# Create a Blueprint for the view routes
 view_bp = Blueprint('view', __name__)
 
+# Route to the index page
 @view_bp.route('/')
 def index():
     """
@@ -14,6 +16,7 @@ def index():
     """
     return render_template('main/index.html')
 
+# Route to the voting page
 @view_bp.route('/vote/', methods=['GET', 'POST'])
 def vote():
     """
@@ -40,6 +43,7 @@ def vote():
             flash("Invalid CSRF token.", "error")
             return redirect(url_for('view.vote', category=category))
         
+        # Check if the user is logged in
         if 'user' not in session:
             flash("You must be logged in to vote.", "error")
             return redirect(url_for('view.vote', category=category))
@@ -52,9 +56,9 @@ def vote():
         submission_owner = session_db.execute(
             text('SELECT username FROM submissions WHERE id = :id'),
             {'id': voted_submission_id}
-        ).scalar()  # Fetches the first column of the first row
+        ).scalar()
         
-
+        # Check if the user is trying to vote on their own submission
         if submission_owner == session['user']['name']:
             flash("You cannot vote for your own submission.", "error")
             return redirect(url_for('view.vote', category=category))
@@ -83,11 +87,13 @@ def vote():
                 {'category': category}
             ).fetchone()
             
+            # Check if there are any submissions in the category
             if challenge_result == None:
                 return render_template('main/error.html', error_message='There are no submissions in this category today. Go submit something!')
 
+            # Fetch two random submissions for the given category
             if challenge_result:
-                challenge_id = challenge_result[0]  # Accessing the first element in the tuple directly
+                challenge_id = challenge_result[0]
                 submissions_result = session_db.execute(
                     text('''
                         SELECT id, username, category, challenge, user_phrase, votes FROM submissions 
@@ -99,25 +105,29 @@ def vote():
                 ).fetchall()
                 submissions = [{column: value for column, value in zip(['id', 'username', 'category', 'challenge', 'user_phrase', 'votes'], submission)} for submission in submissions_result]
 
+                # Check if there are enough submissions to vote on
                 if len(submissions) < 2:
                     return render_template('main/error.html', error_message='Not enough submissions to vote on.')
                 
+                # Fetch the leaderboard for the category
                 leaderboard_result = session_db.execute(
                     text('''
-                        SELECT username, SUM(initial_score + votes) AS total_score
+                        SELECT username, votes
                         FROM submissions
                         WHERE category = :category
                         GROUP BY username
-                        ORDER BY total_score DESC
+                        ORDER BY votes DESC
                         LIMIT 10
                     '''),
                     {'category': category}
                 ).fetchall()
 
-                leaderboard = [{column: value for column, value in zip(['username', 'total_score'], entry)} for entry in leaderboard_result]
+                # Create a list of dictionaries for the leaderboard
+                leaderboard = [{column: value for column, value in zip(['username', 'votes'], entry)} for entry in leaderboard_result]
                 
                 return render_template('votes/vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
 
+        # Handle exceptions
         except Exception as e:
             return render_template('main/error.html', error_message=f"An error occurred: {e}")
         finally:
@@ -125,6 +135,7 @@ def vote():
 
     return redirect(url_for('view.index'))
 
+# Profile view route
 @view_bp.route('/profile', methods=['GET', 'POST'])
 def profile():
     """Display the user's profile."""
@@ -134,6 +145,7 @@ def profile():
 
     return render_template('profile/profile.html', user=user)
 
+# Route to the confirm email page
 @view_bp.route('/confirm_email', methods=['GET'])
 def confirm_email():
     """

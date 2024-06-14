@@ -1,3 +1,5 @@
+# Description: Helper functions for email-related tasks, such as sending verification emails and validating email formats.
+
 from flask_mail import Message
 import re
 

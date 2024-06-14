@@ -11,11 +11,13 @@ from sqlalchemy.sql import text
 from sqlalchemy.exc import SQLAlchemyError
 import bleach
 
+# Create a Blueprint for the authentication routes
 auth_bp = Blueprint('auth', __name__)
 
 # Registration route
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    # Validate the CSRF token
     if request.method == 'POST':
         try:
             validate_csrf(request.form.get('csrf_token'))
@@ -36,7 +38,7 @@ def register():
         if not is_valid_email(email):
             flash("Invalid email format.", "error")
             return render_template('auth/register.html')
-
+        
         # Validate password strength
         password_result = is_strong_password(password)
         if password_result['score'] < 3:
@@ -60,18 +62,15 @@ def register():
                 session_db.add(new_user)
                 session_db.commit()
                 
+                # Send verification email
                 token = generate_confirmation_token(new_user.email)
                 confirm_url = url_for('auth.confirm_email', token=token, _external=True)
                 html = render_template('auth/confirm_email.html', confirm_url=confirm_url)
-                send_verification_email([new_user.email], html)
-            
+                send_verification_email([new_user.email], html) 
                 flash('A verification email has been sent to your email address.', 'success')
                 return redirect(url_for('auth.login'))
-                # random_usernames = generate_random_usernames()
-                # session['pending_user'] = {'email': email, 'usernames': random_usernames}
-                # session.modified = True
-                # return redirect(url_for('auth.choose_username'))
         
+        # Handle database errors
         except SQLAlchemyError as e:
             print(f"Database Error: {e}")
             session_db.rollback()
@@ -79,7 +78,9 @@ def register():
         
     return render_template('auth/register.html')
 
+# Email confirmation route
 @auth_bp.route('/confirm/<token>', methods=['GET', 'POST'])
+# Confirm the token and update the user's email_verified status
 def confirm_email(token):
     try:
         email = confirm_token(token)
@@ -92,10 +93,12 @@ def confirm_email(token):
             text('SELECT * FROM users WHERE email = :email'), {'email': email}
         ).fetchone()
         
+        # Check if the user exists
         if user is None:
             flash('Account not found.', 'error')
             return redirect(url_for('auth.register'))
 
+        # Check if the user is already verified and update the email_verified status if not
         if user.email_verified:
             flash('Account already confirmed. Please login.', 'success')
         else:
@@ -108,8 +111,10 @@ def confirm_email(token):
     
     return redirect(url_for('auth.login'))
 
+# Login route
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # Validate the CSRF token
     if request.method == 'POST':      
         try:
             validate_csrf(request.form.get('csrf_token'))
@@ -117,10 +122,11 @@ def login():
             flash("Invalid CSRF token", "error")
             return render_template('auth/login.html')
         
-        # Validate and sanitize email and password
+        # Sanitize email and password
         email = bleach.clean(request.form['email'])
         password = bleach.clean(request.form['password'])
         
+        # Validate email and password
         if not email or not password:
             flash('Email and password are required', "error")
             return redirect(url_for('auth.login'))
@@ -129,17 +135,21 @@ def login():
                 result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email})
                 user = result.fetchone()
             
+            # Check if the user exists
             if not user:
                 flash('User does not exist. Please register.', "error")
                 return redirect(url_for('auth.login'))
             
+            # Dictionary mapping column names
             user_dict = dict(zip(result.keys(), user))
             
+            # Check if the user has verified their email
             if not user_dict['email_verified']:
                 flash('Please verify your email address before logging in.', 'error')
                 session['unverified_user'] = user_dict['email']
                 return render_template('auth/login.html', unverified=True)
             
+            # Create a User object from the dictionary
             db_user = User(
                 id=user_dict['id'],
                 email=user_dict['email'],
@@ -149,22 +159,24 @@ def login():
                 email_verified=user_dict['email_verified']
             )
             
+            # Check the password and redirect to choose_username if the user has not set a name
             if db_user.check_password(password):
                 session['user'] = {'id': db_user.id, 'name': db_user.name, 'email': db_user.email}
                 session.modified = True
                 if db_user.name is None:
-                    # random_usernames = generate_random_usernames()
-                    # session['pending_user'] = {'email': email, 'usernames': random_usernames}
                     return redirect(url_for('auth.choose_username'))
                 return redirect(url_for('view.index'))
             else:
                 flash('Invalid email or password', "error")
                 return redirect(url_for('auth.login'))
+        
+        # Handle database errors
         except SQLAlchemyError as e:
             flash(f"An error occurred while processing your request: {e}", "error")
             return render_template('auth/login.html')
     return render_template('auth/login.html')
 
+# OAuth login route (Google right now)
 @auth_bp.route('/login/<provider>', methods=['GET', 'POST'])
 def login_provider(provider):
     """
@@ -174,13 +186,16 @@ def login_provider(provider):
     redirect_uri = url_for('auth.authorize', provider=provider, _external=True)
     return oauth_provider.authorize_redirect(redirect_uri, scope='openid email profile')
 
+# OAuth callback route (Google right now)
 @auth_bp.route('/authorize/<provider>')
 def authorize(provider):
     """
     Handle the callback from the OAuth provider and log in or create the user.
     """
-    session['oauth_provider'] = provider  # Store the provider in the session
+    # Store the OAuth provider in the session
+    session['oauth_provider'] = provider
     try:
+        # Create the OAuth provider client
         oauth_provider = current_app.extensions['authlib.integrations.flask_client'].create_client(provider)
         token = oauth_provider.authorize_access_token()
         resp = oauth_provider.userinfo()
@@ -190,17 +205,19 @@ def authorize(provider):
         if not email:
             flash('Failed to retrieve email from Google', "error")
             return redirect(url_for('auth.login'))
-        
+    
+    # Handle OAuth errors
     except OAuthError as error:
-        print(f"OAuth Error: {error}")  # Log the error for debugging
+        print(f"OAuth Error: {error}")
         return "Authorization failed", 500
     
-    # Implement user creation or retrieval logic
+    # Check if the user exists in the database and log in or create the user
     session_db = get_db_connection()
     try:
         result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': resp['email']})
         user = result.fetchone()
         
+        # Create a new user if the user does not exist
         if not user:
             random_password = User.generate_random_password()
             new_user = User(email=resp['email'], name=None, google_user=True)
@@ -210,7 +227,8 @@ def authorize(provider):
             user = new_user
             session['pending_user'] = {'email': resp['email'], 'usernames': generate_random_usernames()}
             return redirect(url_for('auth.choose_username'))
-    
+        
+        # Log in the user if they exist
         if user:
             user = dict(zip(result.keys(), user))
             session['user'] = {'id': user['id'], 'name': user['name'], 'email': user['email']}
@@ -221,6 +239,7 @@ def authorize(provider):
             session_db.rollback()
             return "User creation or retrieval failed", 500
 
+    # Handle database errors
     except SQLAlchemyError as e:
         session_db.rollback()
         print(f"SQLAlchemy Error: {e}")
@@ -228,6 +247,7 @@ def authorize(provider):
     finally:
         session_db.close()
 
+# Username selection route
 @auth_bp.route('/choose_username', methods=['GET', 'POST'])
 def choose_username():
     """Display username choices and handle the selection."""
@@ -237,8 +257,13 @@ def choose_username():
     pending_user = session.get('pending_user')
     
     if request.method == 'POST':
+        # Validate the CSRF token
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except CSRFError:
+            flash("Invalid CSRF token", "error")
+            return redirect(url_for('auth.login'))
 
-        validate_csrf(request.form.get('csrf_token'))
         # Validate and sanitize username
         username = bleach.clean(request.form['username'])
         
@@ -253,7 +278,8 @@ def choose_username():
         try:
             with session_db.no_autoflush:
                 user_record = session_db.query(User).filter_by(email=email).one()
-            
+                
+                # Find User ID and Username
                 if user_record:
                     user_id = user_record.id
                     user_record.name = username
@@ -263,12 +289,14 @@ def choose_username():
                 
             session_db.commit()
             
+            # Sets the session user dictionary with the user's name and email
             session['pending_user']['username'] = username
             session['user'] = {'id': user_id, 'name': user_record.name, 'email': email}
             session.pop('pending_user', None)
             session.modified = True
             return redirect(url_for('view.index'))
         
+        # Handle database errors
         except SQLAlchemyError as e:
             print(f"Database Error: {e}")
             session_db.rollback()
@@ -286,6 +314,7 @@ def choose_username():
 
     return render_template('profile/choose_username.html', usernames=usernames)
 
+# Generate new random usernames route
 @auth_bp.route('/generate_usernames')
 def generate_usernames():
     """Generate new random usernames and update the session."""
@@ -294,16 +323,19 @@ def generate_usernames():
     if not pending_user:
         return redirect(url_for('auth.login'))
     
+    # Generate 3 new random usernames and update the pending_user for the session
     random_usernames = generate_random_usernames()
     session['pending_user']['usernames'] = random_usernames
-    session.modified = True  # Mark the session as modified to ensure changes are saved
+    session.modified = True
     return redirect(url_for('auth.choose_username'))
 
+# Change password route
 @auth_bp.route('/change_password', methods=['GET', 'POST'])
 def change_password():
     """Allow users to change their password."""
     user = session.get('user')
     
+    # Redirect to the login page if the user is not logged in
     if not user:
         return redirect(url_for('auth.login'))
     
@@ -316,34 +348,48 @@ def change_password():
         else:
             user_record = None
         
+        # Check if the user is a Google user
         if not user_record or user_record['google_user']:
             flash('You cannot change your password here. Please use Google to manage your account.', 'error')
             return redirect(url_for('view.profile'))
         
         if request.method == 'POST':
-            validate_csrf(request.form.get('csrf_token'))
+            # Validate the CSRF token
+            try:
+                validate_csrf(request.form.get('csrf_token'))
+            except CSRFError:
+                flash("Invalid CSRF token", "error")
+                return redirect(url_for('auth.login'))
+            
+            # Sanitize the form inputs
             current_password = bleach.clean(request.form['current_password'])
             new_password = bleach.clean(request.form['new_password'])
             confirm_password = bleach.clean(request.form['confirm_password'])
             
+            # Check if the new password and confirm password match
             if new_password != confirm_password:
                 flash('New passwords do not match', 'error')
                 return redirect(url_for('auth.change_password'))
             
+            # Check if the new password is the same as the current password
             if current_password == new_password:
                 flash('New password must be different from the current password', 'error')
                 return redirect(url_for('auth.change_password'))
             
+            # Check if the current password is correct
             if not check_password_hash(user_record['password_hash'], current_password):
                 flash('Current password is incorrect', 'error')
                 return redirect(url_for('auth.change_password'))
             
+            # Create a new password hash and update the user's password
             hashed_password = generate_password_hash(new_password)
             session_db.execute(text('UPDATE users SET password_hash = :password_hash WHERE email = :email'), {'password_hash': hashed_password, 'email': user['email']})
             session_db.commit()
             
             flash('Password updated successfully', 'success')
             return redirect(url_for('view.profile'))
+        
+    # Handle database errors
     except SQLAlchemyError as e:
         print(f"Database Error: {e}")
         session_db.rollback()
@@ -354,14 +400,17 @@ def change_password():
     
     return render_template('profile/change_password.html')
 
+# Resend verification email route
 @auth_bp.route('/resend_verification', methods=['POST'])
 def resend_verification():
+    # Validate the CSRF token
     try:
         validate_csrf(request.form.get('csrf_token'))
     except CSRFError:
         flash("Invalid CSRF token", "error")
         return redirect(url_for('auth.login'))
     
+    # Check if there is an unverified email in the session
     email = session.get('unverified_user')
     if not email:
         flash('No unverified email found.', 'error')
@@ -373,6 +422,7 @@ def resend_verification():
                 text('SELECT * FROM users WHERE email = :email'), {'email': email}
             ).fetchone()
             
+            # Check if the user exists and has not verified their email. Resend the verification email if the user exists
             if user and not user.email_verified:
                 token = generate_confirmation_token(email)
                 confirm_url = url_for('auth.confirm_email', token=token, _external=True)
@@ -381,11 +431,16 @@ def resend_verification():
                 flash('A new verification email has been sent.', 'success')
             else:
                 flash('User not found or already verified.', 'error')
+    
+    # Handle database errors
     except SQLAlchemyError as e:
+        session_db.rollback()
         flash(f"An error occurred: {e}", 'error')
+        return "Database error", 500
     
     return redirect(url_for('auth.login'))
 
+# Logout route
 @auth_bp.route('/logout')
 def logout():
     """

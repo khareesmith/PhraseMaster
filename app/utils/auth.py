@@ -1,7 +1,10 @@
+# Description: Helper functions for authentication and authorization.
+
 from flask import jsonify, session
 from functools import wraps
 from zxcvbn import zxcvbn
 
+# Decorator to require login
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):

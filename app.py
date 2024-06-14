@@ -5,6 +5,7 @@ import os
 # Create the Flask application instance
 app = create_app()
 
+# Run the application
 if __name__ == "__main__":
     if os.getenv('FLASK_ENV') == 'development':
         from waitress import serve

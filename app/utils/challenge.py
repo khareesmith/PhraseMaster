@@ -1,3 +1,5 @@
+# Description: Utility functions for generating daily challenges for the PhraseMaster game.
+
 from ..models.db import get_db_connection
 from openai import OpenAI
 from flask import current_app
@@ -7,8 +9,10 @@ import uuid
 from sqlalchemy.sql import text
 from dotenv import load_dotenv
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Initialize the OpenAI API client
 client = OpenAI()
 
 # System prompt for PhraseMaster
@@ -81,9 +85,11 @@ def generate_challenge(category):
 
     return response.choices[0].message.content.strip()
 
+# Function to get or create a daily challenge
 def get_or_create_daily_challenge(category):
     session_db = get_db_connection()
-    today = datetime.now(pytz.timezone('US/Eastern')).date()  # Ensure we're comparing just the date part
+    # Get the current date in the US/Eastern timezone
+    today = datetime.now(pytz.timezone('US/Eastern')).date()
     challenge_id = None
     challenge = None
 
@@ -119,9 +125,10 @@ def get_or_create_daily_challenge(category):
             )
             session_db.commit()
 
+    # Handle exceptions
     except Exception as e:
         session_db.rollback()
-        logging.error(f"Error in get_or_create_daily_challenge: {e}")
+        print(f"Error in get_or_create_daily_challenge: {e}")
         return None, None
     finally:
         session_db.close()
