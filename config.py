@@ -29,7 +29,7 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
     MAIL_USERNAME = 'api'
-    MAIL_PASSWORD = 'a0fd7145dd73bbde6a301aee7805ee58'
+    MAIL_PASSWORD = ''
     
     SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT')
     

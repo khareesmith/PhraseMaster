@@ -1,11 +1,11 @@
 /* Global Styles */
 body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background-color: #f4f4f4;
-    min-height: 100vh; /* Make the body at least the viewport height */
-    color: #333;
-    display: flex; /* Enable flexbox layout */
-    flex-direction: column; /* Stack content vertically */
+    font-family: 'Helvetica Neue', Arial, sans-serif; /* Use a sans-serif font */
+    background-color: #f4f4f4; /* background color */
+    min-height: 100vh; /* min height of 100% of the viewport height */
+    color: #333; /* color of the text */
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column; /* Stack flex items vertically */
 }
 
 main {
@@ -13,8 +13,12 @@ main {
 }
 
 h1, #datetime {
-    color: #2980b9;
-    margin-top: 40px;
+    margin-top: 20px;
+    color: #2980b9; /* Blue heading color */
+}
+
+#datetime {
+    margin-top: 20px; /* Horizontal margin */
 }
 
 #feedback ul {
@@ -27,6 +31,17 @@ h1, #datetime {
 
 #datetime {
     display: inline;
+}
+
+.glass {
+    color: #fff;
+    margin: 40px auto;
+    background-color: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    width: 100%;
+    border-radius: 15px;
+    padding: 32px;
+    backdrop-filter: blur(10px);
 }
 
 .category-buttons button {
