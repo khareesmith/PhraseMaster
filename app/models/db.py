@@ -29,6 +29,7 @@ class User(Base):
     id = Column(Integer, index=True, primary_key=True)
     email = Column(String(64), unique=True, nullable=False)
     password_hash = Column(String(256), nullable=True)
+    password_salt = Column(String(64), nullable=True)
     name = Column(String(128), unique=True, nullable=True)
     total_votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
     email_verified = Column(Boolean, nullable=False, default=True, server_default=text("True"))
@@ -36,10 +37,14 @@ class User(Base):
     submissions = relationship("Submission", back_populates="user")
     
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        salt = os.urandom(16).hex()
+        self.password_salt = salt
+        salted_password = salt + password
+        self.password_hash = generate_password_hash(salted_password)
         
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        salted_password = self.password_salt + password
+        return check_password_hash(self.password_hash, salted_password)
     
     def get_verification_token(self, expires_sec=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expires_sec)

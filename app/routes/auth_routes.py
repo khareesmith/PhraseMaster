@@ -1,5 +1,4 @@
 from flask import Blueprint, redirect, url_for, session, current_app, render_template, request, flash
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import validate_csrf, CSRFError
 from authlib.integrations.flask_client import OAuthError
 from ..models.db import get_db_connection, User
@@ -154,6 +153,7 @@ def login():
                 id=user_dict['id'],
                 email=user_dict['email'],
                 password_hash=user_dict['password_hash'],
+                password_salt=user_dict['password_salt'],
                 name=user_dict['name'],
                 total_votes=user_dict['total_votes'],
                 email_verified=user_dict['email_verified']
@@ -333,15 +333,15 @@ def generate_usernames():
 @auth_bp.route('/change_password', methods=['GET', 'POST'])
 def change_password():
     """Allow users to change their password."""
-    user = session.get('user')
+    user_session = session.get('user')
     
     # Redirect to the login page if the user is not logged in
-    if not user:
+    if not user_session:
         return redirect(url_for('auth.login'))
     
     session_db = get_db_connection()
     try:
-        result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': user['email']}).fetchone()
+        result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': user_session['email']}).fetchone()
         
         if result:
             user_record = result._mapping
@@ -377,13 +377,17 @@ def change_password():
                 return redirect(url_for('auth.change_password'))
             
             # Check if the current password is correct
-            if not check_password_hash(user_record['password_hash'], current_password):
+            user = User(**user_record)
+            if not user.check_password(current_password):
                 flash('Current password is incorrect', 'error')
                 return redirect(url_for('auth.change_password'))
             
             # Create a new password hash and update the user's password
-            hashed_password = generate_password_hash(new_password)
-            session_db.execute(text('UPDATE users SET password_hash = :password_hash WHERE email = :email'), {'password_hash': hashed_password, 'email': user['email']})
+            user.set_password(new_password)
+            session_db.execute(
+                text('UPDATE users SET password_hash = :password_hash, password_salt = :password_salt WHERE email = :email'),
+                {'password_hash': user.password_hash, 'password_salt': user.password_salt, 'email': user_session['email']}
+            )
             session_db.commit()
             
             flash('Password updated successfully', 'success')
@@ -439,6 +443,98 @@ def resend_verification():
         return "Database error", 500
     
     return redirect(url_for('auth.login'))
+
+# Reset password request route
+@auth_bp.route('/reset_password', methods=['GET', 'POST'])
+def reset_password_request():
+    if request.method == 'POST':
+        # Validate the CSRF token
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except CSRFError:
+            flash("Invalid CSRF token", "error")
+            return redirect(url_for('auth.login'))
+
+        # Sanitize the email
+        email = bleach.clean(request.form['email'])
+        
+        # Check if the email is valid
+        if not is_valid_email(email):
+            flash('Invalid email address.', 'error')
+            return render_template('auth/reset_password_request.html')
+        
+        with get_db_connection() as session_db:
+            user = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email}).fetchone()
+            
+            # Check if the user exists and send a password reset email
+            if user:
+                token = generate_confirmation_token(email)
+                reset_url = url_for('auth.reset_password', token=token, _external=True)
+                html = render_template('auth/reset_password_email.html', reset_url=reset_url)
+                send_verification_email([email], html)
+                flash('A password reset email has been sent.', 'success')
+            else:
+                flash('Email not found.', 'error')
+                return redirect(url_for('auth.reset_password_request'))
+                
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/reset_password_req.html')
+
+# Reset password route
+@auth_bp.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = confirm_token(token)
+    except Exception as e:
+        print(f"Token confirmation error: {e}")
+        flash('The password reset link is invalid or has expired.', 'error')
+        return redirect(url_for('auth.reset_password_request'))
+    
+    if request.method == 'POST':
+        # Validate the CSRF token
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except CSRFError as e:
+            flash("Invalid CSRF token", "error")
+            return redirect(url_for('auth.reset_password', token=token))
+        
+        # Sanitize the password and confirm password
+        password = bleach.clean(request.form['password'])
+        confirm_password = bleach.clean(request.form['confirm_password'])
+        
+        # Check if the passwords match
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+        
+        # Validate the password strength
+        password_result = is_strong_password(password)
+        if password_result['score'] < 3:
+            suggestions = " ".join(password_result['feedback']['suggestions'])
+            flash(f"Password is too weak. Suggestions: {suggestions}", 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+        
+        with get_db_connection() as session_db:
+            result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email}).fetchone()
+            
+            if result:
+                user_record = result._mapping
+                user = User(**user_record)
+                user.set_password(password)
+                
+                session_db.execute(
+                    text('UPDATE users SET password_hash = :password_hash, password_salt = :password_salt WHERE email = :email'),
+                    {'password_hash': user.password_hash, 'password_salt': user.password_salt, 'email': email}
+                )
+                session_db.commit()
+                flash('Your password has been reset successfully.', 'success')
+                return redirect(url_for('auth.login'))
+            else:
+                flash('User not found.', 'error')
+                return redirect(url_for('auth.reset_password_request'))
+    
+    return render_template('auth/reset_password.html', token=token)
 
 # Logout route
 @auth_bp.route('/logout')

@@ -8,7 +8,7 @@ def send_verification_email(to, template):
     from app import mail
     
     # token = User.get_verification_token(user)
-    msg = Message('Email Verification', sender='mailtrap@khareesmith.com', recipients=to, html=template)
+    msg = Message('Email Verification', sender='noreply@khareesmith.com', recipients=to, html=template)
     mail.send(msg)
 
 # Helper function to validate email format
