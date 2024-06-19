@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
 import os, string, random
+from datetime import datetime
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -38,11 +39,19 @@ class User(Base):
         email_verified: Whether the user's email is verified.
         google_user: Whether the user is a Google user.
         submissions: The user's submissions which have a relationship to the Submission model.
+        
+        login_streak: The user's login streak.
+        submission_streak: The user's submission streak.
+        voting_streak: The user's voting streak.
+        last_login_date: The date of the user's last login.
+        last_submission_date: The date of the user's last submission.
+        last_voting_date: The date of the user's last vote.
     
     Methods:
         set_password: Set the password for the user by salting and hashing the password. Saves both to the database.
         check_password: Check if the password provided matches the hashed password in the database.
         get_verification_token: Get a verification token for the user.
+        generate_random_password: Generate a random password of 12 characters.
         verify_verification_token: Verify the verification token for the user.
     """
     __tablename__ = 'users'
@@ -55,6 +64,14 @@ class User(Base):
     email_verified = Column(Boolean, nullable=False, default=True, server_default=text("True"))
     google_user = Column(Boolean, nullable=False, default=False, server_default=text("False"))
     submissions = relationship("Submission", back_populates="user")
+    
+    # Streak fields
+    login_streak = Column(Integer, default=0)
+    submission_streak = Column(Integer, default=0)
+    voting_streak = Column(Integer, default=0)
+    last_login_date = Column(Date, default=datetime.now())
+    last_submission_date = Column(Date, default=datetime.now())
+    last_voting_date = Column(Date, default=datetime.now())
     
     def set_password(self, password):
         """
@@ -326,6 +343,6 @@ def create_tables():
 def drop_tables():
     Base.metadata.drop_all(engine)
 
-# Call these functions initially to drop and create tables if they don't exist
+# Call these functions initially to drop and create the tables in the database. Comment out the drop_tables() function if you do not want to drop the tables.
 # drop_tables()
 create_tables()

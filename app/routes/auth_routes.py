@@ -1,11 +1,12 @@
 from flask import Blueprint, redirect, url_for, session, current_app, render_template, request, flash
 from flask_wtf.csrf import validate_csrf, CSRFError
 from authlib.integrations.flask_client import OAuthError
-from ..models.db import get_db_connection, User
-from ..utils.random_username import generate_random_usernames
-from ..utils.email import send_verification_email, send_pass_reset_email, is_valid_email
-from ..utils.token import generate_confirmation_token, confirm_token
-from ..utils.auth import is_strong_password
+from app.models.db import get_db_connection, User
+from app.utils.streaks import update_login_streak
+from app.utils.random_username import generate_random_usernames
+from app.utils.email import send_verification_email, send_pass_reset_email, is_valid_email
+from app.utils.token import generate_confirmation_token, confirm_token
+from app.utils.auth import is_strong_password
 from sqlalchemy.sql import text
 from sqlalchemy.exc import SQLAlchemyError
 import bleach
@@ -139,8 +140,8 @@ def login():
                 flash('User does not exist. Please register.', "error")
                 return redirect(url_for('auth.login'))
             
-            # Dictionary mapping column names
-            user_dict = dict(zip(result.keys(), user))
+            # Convert the user tuple to a dictionary
+            user_dict = user._mapping
             
             # Check if the user has verified their email
             if not user_dict['email_verified']:
@@ -148,23 +149,17 @@ def login():
                 session['unverified_user'] = user_dict['email']
                 return render_template('auth/login.html', unverified=True)
             
-            # Create a User object from the dictionary
-            db_user = User(
-                id=user_dict['id'],
-                email=user_dict['email'],
-                password_hash=user_dict['password_hash'],
-                password_salt=user_dict['password_salt'],
-                name=user_dict['name'],
-                total_votes=user_dict['total_votes'],
-                email_verified=user_dict['email_verified']
-            )
+            # Query the user object from the database
+            user_obj = session_db.query(User).filter_by(id=user_dict['id']).first()
             
             # Check the password and redirect to choose_username if the user has not set a name
-            if db_user.check_password(password):
-                session['user'] = {'id': db_user.id, 'name': db_user.name, 'email': db_user.email}
+            if user_obj.check_password(password):
+                session['user'] = {'id': user_obj.id, 'name': user_obj.name, 'email': user_obj.email}
                 session.modified = True
-                if db_user.name is None:
+                if user_obj.name is None:
                     return redirect(url_for('auth.choose_username'))
+                else:
+                    update_login_streak(user_obj, session_db)
                 return redirect(url_for('view.index'))
             else:
                 flash('Invalid email or password', "error")
@@ -215,10 +210,10 @@ def authorize(provider):
     session_db = get_db_connection()
     try:
         result = session_db.execute(text('SELECT * FROM users WHERE email = :email'), {'email': resp['email']})
-        user = result.fetchone()
+        user_record = result.fetchone()
         
         # Create a new user if the user does not exist
-        if not user:
+        if not user_record:
             random_password = User.generate_random_password()
             new_user = User(email=resp['email'], name=None, google_user=True)
             new_user.set_password(random_password)
@@ -229,10 +224,12 @@ def authorize(provider):
             return redirect(url_for('auth.choose_username'))
         
         # Log in the user if they exist
-        if user:
-            user = dict(zip(result.keys(), user))
-            session['user'] = {'id': user['id'], 'name': user['name'], 'email': user['email']}
+        if user_record:
+            user_dict = user_record._mapping
+            user = User(**user_dict)
+            session['user'] = {'id': user.id, 'name': user.name, 'email': user.email}
             session.modified = True
+            update_login_streak(user, session_db)
             session_db.commit()
             return redirect(url_for('view.index'))
         else:

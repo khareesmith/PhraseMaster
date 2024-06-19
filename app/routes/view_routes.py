@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, request, session, redirect, url_for, flash, render_template
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
-from ..models.db import get_db_connection
+from app.models.db import get_db_connection, User
+from app.utils.streaks import update_voting_streak
 import bleach
 
 # Create a Blueprint for the view routes
@@ -27,7 +28,7 @@ def vote():
 
     Returns:
         - A rendered template for the voting page on GET requests.
-        - A redirection to the index page on successful vote submission.
+        - A redirect to the voting page on POST requests.
         - An error message if there are not enough submissions to vote on.
     """
     session_db = get_db_connection()
@@ -58,7 +59,6 @@ def vote():
             {'id': voted_submission_id}
         ).scalar()
         
-        # Check if the user is trying to vote on their own submission
         if submission_owner == session['user']['name']:
             flash("You cannot vote for your own submission.", "error")
             return redirect(url_for('view.vote', category=category))
@@ -69,7 +69,15 @@ def vote():
                 text('UPDATE submissions SET votes = votes + 1 WHERE id = :id'),
                 {'id': voted_submission_id}
             )
+            
+            # Fetch the user object for updating the voting streak
+            user_id = session['user']['id']
+            user_obj = session_db.query(User).filter_by(id=user_id).first()
+            if user_obj:
+                update_voting_streak(user_obj, session_db)
+            
             session_db.commit()
+                
             flash("Vote successful!", "success")
             return redirect(url_for('view.vote', category=category))
         except Exception as e:
@@ -112,18 +120,17 @@ def vote():
                 # Fetch the leaderboard for the category
                 leaderboard_result = session_db.execute(
                     text('''
-                        SELECT username, votes
+                        SELECT username, SUM(votes) as total_votes
                         FROM submissions
                         WHERE category = :category
                         GROUP BY username
-                        ORDER BY votes DESC
+                        ORDER BY total_votes DESC
                         LIMIT 10
                     '''),
                     {'category': category}
                 ).fetchall()
 
-                # Create a list of dictionaries for the leaderboard
-                leaderboard = [{column: value for column, value in zip(['username', 'votes'], entry)} for entry in leaderboard_result]
+                leaderboard = [{column: value for column, value in zip(['username', 'total_votes'], entry)} for entry in leaderboard_result]
                 
                 return render_template('votes/vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
 

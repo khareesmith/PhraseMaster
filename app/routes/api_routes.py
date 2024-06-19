@@ -4,10 +4,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
 import bleach
 
-from ..models.db import get_db_connection, phrase_already_submitted, insert_submission
-from ..utils.score import calculate_initial_score
-from ..utils.auth import login_required
-from ..utils.challenge import get_or_create_daily_challenge
+from app.models.db import get_db_connection, phrase_already_submitted, insert_submission, User
+from app.utils.score import calculate_initial_score
+from app.utils.auth import login_required
+from app.utils.challenge import get_or_create_daily_challenge
+from app.utils.streaks import update_submission_streak
 
 # Create a Blueprint for the API routes
 api_bp = Blueprint('api', __name__)
@@ -105,6 +106,7 @@ def submit_phrase():
 
         # Calculate the initial score and feedback
         initial_score, feedback = calculate_initial_score(user_phrase, category, challenge)
+        
         # Validate user ID, user phrase, challenge ID, challenge, and category
         if not user_id:
             return jsonify({'error': 'Missing user ID'}), 400
@@ -121,8 +123,17 @@ def submit_phrase():
         if not category:
             return jsonify({'error': 'Missing category'}), 400
         
-        # Get the current date and insert into the database
+        # Insert into the database
         insert_submission(session_db, user_id, username, current_date, user_phrase, category, challenge_id, challenge, initial_score)
+        
+        # Commit the insertion to ensure the user and submission are in the database
+        session_db.commit()
+        
+        # Fetch the user object for updating the submission streak
+        user_obj = session_db.query(User).filter_by(id=user_id).first()
+        if user_obj:
+            update_submission_streak(user_obj, session_db)
+            session_db.commit()
     
     # Handle database errors
     except SQLAlchemyError as e:
