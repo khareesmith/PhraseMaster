@@ -19,6 +19,12 @@ def generate_category_challenge(category):
     
     """
     Generate a challenge for a specific category.
+    
+    Args:
+        category (str): The category for which to generate the challenge.
+    
+    Returns:
+        JSON: The generated challenge, its ID, and the category.
     """
     
     # Initialize variables
@@ -50,7 +56,7 @@ def generate_category_challenge(category):
 def submit_phrase():
     
     """
-    Submit a phrase for a given challenge.
+    Submit a phrase for a given challenge. The challenge ID and user phrase are required in the request data. The user must be logged in to submit a phrase.
     """
     session_db = get_db_connection()
     # Get the current date

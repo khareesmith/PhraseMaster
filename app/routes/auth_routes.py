@@ -3,7 +3,7 @@ from flask_wtf.csrf import validate_csrf, CSRFError
 from authlib.integrations.flask_client import OAuthError
 from ..models.db import get_db_connection, User
 from ..utils.random_username import generate_random_usernames
-from ..utils.email import send_verification_email, is_valid_email
+from ..utils.email import send_verification_email, send_pass_reset_email, is_valid_email
 from ..utils.token import generate_confirmation_token, confirm_token
 from ..utils.auth import is_strong_password
 from sqlalchemy.sql import text
@@ -432,7 +432,7 @@ def resend_verification():
                 confirm_url = url_for('auth.confirm_email', token=token, _external=True)
                 html = render_template('auth/confirm_email.html', confirm_url=confirm_url)
                 send_verification_email([email], html)
-                flash('A new verification email has been sent.', 'success')
+                flash(f'A verification email has been sent to {email}. Please check your Inbox and Spam folder.', 'success')
             else:
                 flash('User not found or already verified.', 'error')
     
@@ -471,8 +471,8 @@ def reset_password_request():
                 token = generate_confirmation_token(email)
                 reset_url = url_for('auth.reset_password', token=token, _external=True)
                 html = render_template('auth/reset_password_email.html', reset_url=reset_url)
-                send_verification_email([email], html)
-                flash('A password reset email has been sent.', 'success')
+                send_pass_reset_email([email], html)
+                flash('A password reset email has been sent. Please check your Inbox and Spam folder.', 'success')
             else:
                 flash('Email not found.', 'error')
                 return redirect(url_for('auth.reset_password_request'))

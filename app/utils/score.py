@@ -8,6 +8,19 @@ client = OpenAI()
 
 # Function to calculate the initial score of a phrase
 def calculate_initial_score(phrase, category, original_prompt):
+    """
+    Calculates the initial score of a phrase based on evaluation criteria provided by the scoring system prompt. The function sends the phrase, category, and original prompt to the OpenAI API for evaluation and extracts the score from the response. If the score extraction fails, it defaults to 0.
+    
+    Args:
+        phrase (str): The phrase to evaluate.
+        category (str): The category of the phrase.
+        original_prompt (str): The original prompt for the phrase.
+    
+    Returns:
+        score (int): The calculated score for the phrase.
+        feedback (str): The feedback provided by the scoring system.
+    """
+    
     scoring_system_prompt = [
         {
             "role": "system",

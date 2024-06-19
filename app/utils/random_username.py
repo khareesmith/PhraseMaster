@@ -5,7 +5,13 @@ import random
 # Generate a random username
 def generate_random_username():
     """
-    Generate a random username using a combination of adjectives and nouns.
+    Generate a random username using a combination of adjectives and nouns. At least 40,000 unique usernames can be generated using this function.
+    
+    Args:
+        None
+    
+    Returns:
+        str: The generated username
     """
     adjectives = [
     "Adventurous", "Amusing", "Artistic", "Athletic", "Bold", "Blissful", "Brave", "Bright",
@@ -74,6 +80,12 @@ def generate_random_username():
 def generate_random_usernames():
     """
     Generate a list of three random usernames.
+    
+    Args:
+        None
+    
+    Returns:
+        list: A list of three randomly generated usernames
     """
     random_usernames = [generate_random_username() for _ in range(3)]
     return random_usernames

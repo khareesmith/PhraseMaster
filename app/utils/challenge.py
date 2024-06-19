@@ -87,9 +87,18 @@ def generate_challenge(category):
 
 # Function to get or create a daily challenge
 def get_or_create_daily_challenge(category):
+    """
+    Generate a challenge based on the specified category if one does not already exist for the current date. If a challenge already exists for the current date, retrieve it.
+    
+    Args:
+        category (str): The category for which to generate the challenge.
+    
+    Returns:
+        str: The challenge ID in UUID format.
+        str: The challenge text.
+    """
     session_db = get_db_connection()
-    # Get the current date in the US/Eastern timezone
-    today = datetime.now(pytz.timezone('US/Eastern')).date()
+    today = datetime.now(pytz.timezone('US/Eastern')).date() # Current date in the US/Eastern timezone
     challenge_id = None
     challenge = None
 

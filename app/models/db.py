@@ -25,6 +25,26 @@ Session = sessionmaker(bind=engine)
 
 # Define the User model
 class User(Base):
+    """
+    User model for database.
+    
+    Attributes:
+        id: The user's ID.
+        email: The user's email address.
+        password_hash: The hashed password.
+        password_salt: The salt used to hash the password.
+        name: The user's username.
+        total_votes: The total number of votes the user has.
+        email_verified: Whether the user's email is verified.
+        google_user: Whether the user is a Google user.
+        submissions: The user's submissions which have a relationship to the Submission model.
+    
+    Methods:
+        set_password: Set the password for the user by salting and hashing the password. Saves both to the database.
+        check_password: Check if the password provided matches the hashed password in the database.
+        get_verification_token: Get a verification token for the user.
+        verify_verification_token: Verify the verification token for the user.
+    """
     __tablename__ = 'users'
     id = Column(Integer, index=True, primary_key=True)
     email = Column(String(64), unique=True, nullable=False)
@@ -37,26 +57,71 @@ class User(Base):
     submissions = relationship("Submission", back_populates="user")
     
     def set_password(self, password):
+        """
+        Set the password for the user by salting and hashing the password. Saves both to the database.
+        
+        Args:
+            password (str): The password to set.
+        
+        Returns:
+            None
+        """
         salt = os.urandom(16).hex()
         self.password_salt = salt
         salted_password = salt + password
         self.password_hash = generate_password_hash(salted_password)
         
     def check_password(self, password):
+        """
+        Check if the password provided matches the hashed password in the database.
+        
+        Args:
+            password (str): The password to set.
+        
+        Returns:
+            bool: True if the password matches, False otherwise.
+        """
         salted_password = self.password_salt + password
         return check_password_hash(self.password_hash, salted_password)
     
     def get_verification_token(self, expires_sec=3600):
+        """
+        Get the verification token for the user.
+        
+        Args:
+            expires_sec (int): The number of seconds before the token expires.
+        
+        Returns:
+            str: The verification token.
+        """
         s = Serializer(current_app.config['SECRET_KEY'], expires_sec)
         return s.dumps({'user_id': self.id}).decode('utf-8')
     
     def generate_random_password(length=12):
+        """
+        Generate a random password of 12 characters.
+        
+        Args:
+            length (int): The length of the password.
+        
+        Returns:
+            str: The random password.
+        """
         characters = string.ascii_letters + string.digits + string.punctuation
         random_password = ''.join(random.choice(characters) for i in range(length))
         return random_password
 
     @staticmethod
     def verify_verification_token(token):
+        """
+        Verify the verification token for the user.
+        
+        Args:
+            token (str): The verification token.
+        
+        Returns:
+            User: The user if the token is valid, otherwise None.
+        """
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             user_id = s.loads(token)['user_id']
@@ -66,6 +131,25 @@ class User(Base):
     
 # Define the Submission model    
 class Submission(Base):
+    """
+    Submission model for the database.
+    
+    Attributes:
+        id: The submission ID.
+        date: The date of the submission.
+        category: The category of the submission.
+        challenge_id: The ID of the challenge.
+        challenge: The original challenge prompt.
+        user_phrase: The phrase submitted by the user.
+        user_id: The ID of the user who submitted the phrase.
+        username: The username of the user who submitted the phrase.
+        initial_score: The initial score of the submission.
+        votes: The number of votes the submission has.
+        user: The user who submitted the phrase with a relationship to the User model.
+        
+    Methods:
+        None
+    """
     __tablename__ = 'submissions'
     id = Column(BigInteger, primary_key=True)
     date = Column(Date, nullable=False, index=True)
@@ -81,6 +165,19 @@ class Submission(Base):
 
 # Define the Challenge model
 class Challenge(Base):
+    """
+    Challenge model for the database.
+    
+    Attributes:
+        id: The challenge ID for the database.
+        challenge_id: The unique ID of the challenge.
+        category: The category of the challenge.
+        original_challenge: The original challenge prompt.
+        date: The date of the challenge.
+        
+    Methods:
+        None
+    """
     __tablename__ = 'daily_challenges'
     id = Column(BigInteger, primary_key=True)
     challenge_id = Column(String, unique=True, nullable=False)
@@ -177,6 +274,17 @@ def insert_submission(session, user_id, username, date, user_phrase, category, c
 
 # Function to update a username
 def update_username(session, user_id, new_username):
+    """
+    Update the username of a user in the database.
+
+    Args:
+        session (Session): The database session object.
+        user_id (int): The ID of the user.
+        new_username (str): The new username.
+
+    Returns:
+        None
+    """
     try:
         session.execute(text("UPDATE users SET name = :new_username WHERE id = :user_id"), {'new_username': new_username, 'user_id': user_id})
         session.execute(text("UPDATE submissions SET username = :new_username WHERE user_id = :user_id"), {'new_username': new_username, 'user_id': user_id})
@@ -189,6 +297,18 @@ def update_username(session, user_id, new_username):
 
 # Function to check if a phrase has already been submitted
 def phrase_already_submitted(session, user_id, category, date):
+    """
+    Check if a phrase has already been submitted by a user for a given category and date.
+
+    Args:
+        session (Session): The database session object.
+        user_id (int): The ID of the user.
+        category (str): The category of the challenge.
+        date (str): The date of the challenge.
+
+    Returns:
+        bool: True if the phrase has already been submitted, False otherwise.
+    """
     try:
         result = session.execute(text('SELECT user_id FROM submissions WHERE user_id = :user_id AND category = :category AND date = :date'), {'user_id': user_id, 'category': category, 'date': date}).fetchone()
         return result is not None
