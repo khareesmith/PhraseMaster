@@ -1,4 +1,5 @@
 from flask import Blueprint, request, session, redirect, url_for, flash, render_template
+from datetime import datetime
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
@@ -34,6 +35,7 @@ def vote():
     session_db = get_db_connection()
     category = request.args.get('category')
     username = request.args.get('username')
+    MAX_VOTES_PER_DAY = 10
     
     if request.method == 'POST':
         
@@ -63,6 +65,21 @@ def vote():
             flash("You cannot vote for your own submission.", "error")
             return redirect(url_for('view.vote', category=category))
         
+        # Fetch the user object
+        user_id = session['user']['id']
+        user_obj = session_db.query(User).filter_by(id=user_id).first()
+        
+        # Reset daily_votes if it's a new day
+        today = datetime.now().date()
+        if user_obj.last_vote_date != today:
+            user_obj.daily_votes = 0
+            user_obj.last_vote_date = today
+        
+        # Check if the user has reached the voting limit
+        if user_obj.daily_votes >= MAX_VOTES_PER_DAY:
+            flash("You have reached your voting limit for today.", "error")
+            return redirect(url_for('view.vote', category=category))
+        
         # Update the vote count for the selected submission
         try:
             session_db.execute(
@@ -70,15 +87,14 @@ def vote():
                 {'id': voted_submission_id}
             )
             
-            # Fetch the user object for updating the voting streak
-            user_id = session['user']['id']
-            user_obj = session_db.query(User).filter_by(id=user_id).first()
-            if user_obj:
-                update_voting_streak(user_obj, session_db)
+            # Increment the user's daily votes and update the voting streak
+            user_obj.daily_votes += 1
+            update_voting_streak(user_obj, session_db)
             
             session_db.commit()
-                
-            flash("Vote successful!", "success")
+            
+            remaining_votes = MAX_VOTES_PER_DAY - user_obj.daily_votes
+            flash(f"Vote successful! You have {remaining_votes} votes left for today.", "success")
             return redirect(url_for('view.vote', category=category))
         except Exception as e:
             session_db.rollback()

@@ -46,6 +46,9 @@ class User(Base):
         last_login_date: The date of the user's last login.
         last_submission_date: The date of the user's last submission.
         last_voting_date: The date of the user's last vote.
+        
+        daily_votes: The number of votes the user has for the day.
+        last_vote_date: The date of the user's last vote.
     
     Methods:
         set_password: Set the password for the user by salting and hashing the password. Saves both to the database.
@@ -72,6 +75,10 @@ class User(Base):
     last_login_date = Column(Date, default=datetime.now())
     last_submission_date = Column(Date, default=datetime.now())
     last_voting_date = Column(Date, default=datetime.now())
+    
+    # Vote fields
+    daily_votes = Column(Integer, default=0)
+    last_vote_date = Column(Date)
     
     def set_password(self, password):
         """
