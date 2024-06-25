@@ -33,8 +33,34 @@ def create_app():
     oauth = OAuth(app)
     for name, config in app.config['OAUTH_PROVIDERS'].items():
         oauth.register(name=name, **config)
-    
-    Talisman(app, force_https=True)
+
+    csp = {
+        'default-src': "'self'",
+        'script-src': [
+            "'self'",
+            "'unsafe-inline'",
+            "https://kit.fontawesome.com",
+            "https://cdn.jsdelivr.net",
+        ],
+        'style-src': [
+            "'self'",
+            "'unsafe-inline'",
+            "https://fonts.googleapis.com",
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com",
+        ],
+        'font-src': [
+            "'self'",
+            "https://fonts.gstatic.com",
+            "https://kit-free.fontawesome.com",
+        ],
+        'img-src': ["'self'", "data:", "https:"],
+        'connect-src': ["'self'"],
+        }
+
+    Talisman(app,
+        content_security_policy=csp,
+        content_security_policy_nonce_in=['script-src', 'style-src'])
     
     # Register Blueprints
     from .routes.auth_routes import auth_bp

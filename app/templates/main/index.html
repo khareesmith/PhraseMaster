@@ -184,7 +184,7 @@
     </footer>
 
     {% if 'user' in session %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         window.username = "{{ session['user']['name'] }}";
         window.user_id = "{{ session['user']['id'] }}";
     </script>

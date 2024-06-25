@@ -169,7 +169,7 @@
     </footer>
 
     {% if 'user' in session %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         window.username = "{{ session['user']['name'] }}";
     </script>
     {% endif %}
