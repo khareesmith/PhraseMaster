@@ -11,10 +11,10 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="PhraseMaster Logo" height="40">
+                    <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
                 </a>
     
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainnav" aria-controls="mainnav" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,18 +65,18 @@
             </div>
             <p id="strength-text"></p>
 
-            <button type="submit" class="btn btn-primary">Register</button>
+            <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Register</button>
         </form>
 
         <!-- Login with Google button -->
         <form method="POST" action="{{ url_for('auth.login_provider', provider='google') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button class="btn btn-secondary mt-2" href=""><i class="fa-brands fa-google"></i> Register with Google</button>
+            <button class="btn phrasecraze-btn phrasecraze-btn-google mt-2" href=""><i class="fa-brands fa-google"></i> Register with Google</button>
         </form>
 
     </main>
-    <footer class="bg-light text-center py-4 mt-4">
-        <p>&copy; 2024 PhraseMaster. All rights reserved.</p>
+    <footer class="text-center">
+        <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
         <div class="social-links">
             <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
             <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>

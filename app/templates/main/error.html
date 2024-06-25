@@ -10,16 +10,15 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     </head>
 <body>
-
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="PhraseMaster Logo" height="40">
+                    <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
                 </a>
     
                 {% if 'user' in session %}
-                <span class="navbar-text ms-3">
+                <span class="navbar-text ms-3" id="username">
                 {{ session['user']['name'] }}
                 </span>
                 {% endif %}
@@ -65,8 +64,8 @@
         </div>
     </main>
 
-    <footer class="bg-light text-center py-4 mt-4">
-        <p>&copy; 2024 PhraseMaster. All rights reserved.</p>
+    <footer class="text-center">
+        <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
         <div class="social-links">
             <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
             <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>

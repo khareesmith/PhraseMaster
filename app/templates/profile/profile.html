@@ -13,16 +13,14 @@
 <body>
 
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="PhraseMaster Logo" height="40">
+                    <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
                 </a>
-
-                
     
                 {% if 'user' in session %}
-                <span class="navbar-text ms-3">
+                <span class="navbar-text ms-3" id="username">
                 {{ session['user']['name'] }}
                 </span>
                 {% endif %}
@@ -42,13 +40,6 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
-                        </li>
-                        {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
                         </li>
                         {% endif %}
                     </ul>
@@ -71,13 +62,13 @@
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>Username:</strong> {{ user.name }}</p>
 
-        <a class="btn btn-primary mt-3" href="{{ url_for('auth.choose_username') }}">Choose a New Username</a>
+        <a class="btn phrasecraze-btn phrasecraze-btn-primary mt-3" href="{{ url_for('auth.choose_username') }}">Choose a New Username</a>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <a class="btn btn-secondary mt-3" href="{{ url_for('auth.change_password') }}">Change Password</a>
+        <a class="btn phrasecraze-btn phrasecraze-btn-secondary mt-3" href="{{ url_for('auth.change_password') }}">Change Password</a>
     </main>
 
-    <footer class="bg-light text-center py-4 mt-4">
-        <p>&copy; 2024 PhraseMaster. All rights reserved.</p>
+    <footer class="text-center">
+        <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
         <div class="social-links">
             <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
             <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>

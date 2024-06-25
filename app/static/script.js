@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const feedbackDisplay = document.getElementById('feedback');
     const submissionForm = document.getElementById('submissionForm');
     const clearFeedbackButton = document.getElementById('clear_feedback_button');
+    const datetime = document.getElementById('datetime');
 
     clearFeedbackButton.textContent = 'Continue';
     clearFeedbackButton.classList.add('btn', 'btn-secondary', 'mt-3', 'm-0', 'm-auto');
@@ -37,7 +38,15 @@ document.addEventListener('DOMContentLoaded', function () {
             currentChallengeId = data.challenge_id;
             currentOriginalPrompt = data.challenge;
             currentCategory = data.category;
-            promptDisplay.textContent = data.challenge;
+            
+            // Fade out the old prompt
+            promptDisplay.style.opacity = '0';
+            setTimeout(() => {
+                promptDisplay.textContent = data.challenge;
+                // Fade in the new prompt
+                promptDisplay.style.opacity = '1';
+            }, 300);
+
             submissionForm.style.display = 'block';
 
         } catch (error) {
@@ -159,5 +168,5 @@ document.addEventListener('DOMContentLoaded', function () {
     var datestring = day + "/" + month + "/" + year;
 
     // Insert date and time into HTML
-    document.getElementById("datetime").innerHTML = datestring;
+    datetime.innerHTML = datestring;
 });
