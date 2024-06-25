@@ -42,6 +42,8 @@ def create_app():
         "https://kit.fontawesome.com",
         "https://cdn.jsdelivr.net",
         "https://ka-f.fontawesome.com",
+        "https://accounts.google.com",
+        "https://apis.google.com",
     ],
     'style-src': [
         "'self'",
@@ -56,11 +58,17 @@ def create_app():
         "https://fonts.gstatic.com",
         "https://ka-f.fontawesome.com",
     ],
-    'img-src': ["'self'", "data:", "https:"],
+    'img-src': ["'self'", "data:", "https:", "https://accounts.google.com"],
     'connect-src': [
         "'self'",
         "https://ka-f.fontawesome.com",
+        "https://accounts.google.com",
     ],
+    'frame-src': [
+        "'self'",
+        "https://accounts.google.com",
+    ],
+    'form-action': ["'self'", "https://accounts.google.com"],
     }
 
     Talisman(app,
