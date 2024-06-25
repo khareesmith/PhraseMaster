@@ -98,16 +98,12 @@
         {% if unverified %}
         <div class="mt-3">
             <p>Didn't receive the verification email? 
-                <a href="{{ url_for('auth.resend_verification') }}" 
-                onclick="event.preventDefault(); document.getElementById('resend-form').submit(); return false;">
+                <a href="#" onclick="event.preventDefault(); document.getElementById('resend-form').submit();">
                     Resend verification
                 </a>
             </p>
             <form id="resend-form" method="POST" action="{{ url_for('auth.resend_verification') }}" style="display: none;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <noscript>
-                    <input type="submit" value="Resend verification">
-                </noscript>
             </form>
         </div>
         {% endif %}

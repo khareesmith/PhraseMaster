@@ -402,7 +402,7 @@ def change_password():
     return render_template('profile/change_password.html')
 
 # Resend verification email route
-@auth_bp.route('/resend_verification', methods=['GET', 'POST'])
+@auth_bp.route('/resend_verification', methods=['POST'])
 def resend_verification():
     if request.method == 'POST':
         # Validate the CSRF token
@@ -439,11 +439,6 @@ def resend_verification():
             session_db.rollback()
             flash(f"An error occurred: {e}", 'error')
             return "Database error", 500
-    
-    elif request.method == 'GET':
-        # Handle GET request (e.g., when JavaScript is disabled)
-        flash('Please use the form to resend the verification email.', 'info')
-        return redirect(url_for('auth.login'))
     
     return redirect(url_for('auth.login'))
 
