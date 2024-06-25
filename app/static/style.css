@@ -65,7 +65,7 @@ body {
 }
 
 .navbar-light .navbar-nav .nav-link {
-    color: #fcfcfc;
+    color: #000;
 }
 
 .navbar-light .navbar-nav .nav-link:hover,
@@ -78,7 +78,7 @@ body {
 }
 
 .dropdown-item {
-    color: #fcfcfc;
+    color: #000;
 }
 
 .dropdown-item:hover, .dropdown-item:focus {
@@ -86,7 +86,7 @@ body {
 }
 
 #username, .choose_name {
-    color: #fcfcfc;
+    color: #2b4a69;
     font-size: larger;
 }
 
@@ -175,11 +175,11 @@ h1, #datetime {
 }
 
 .glass {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.2);
     background: linear-gradient(
         to bottom right,
-        rgba(255, 255, 255, 0.7),
-        rgba(255, 255, 255, 0.3)
+        rgba(255, 255, 255, 0.4),
+        rgba(255, 255, 255, 0.2)
     );
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
@@ -522,14 +522,6 @@ footer p {
 
 .social-links a:hover {
     color: #233d57;
-}
-
-@media screen and (max-width: 767px) {
-    .navbar, .glass {
-        background: rgba(255, 255, 255, 0.8);
-        -webkit-backdrop-filter: none;
-        backdrop-filter: none;
-    }
 }
 
 @media screen and (min-width: 768px){
