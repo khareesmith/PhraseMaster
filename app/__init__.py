@@ -35,32 +35,37 @@ def create_app():
         oauth.register(name=name, **config)
 
     csp = {
-        'default-src': "'self'",
-        'script-src': [
-            "'self'",
-            "'unsafe-inline'",
-            "https://kit.fontawesome.com",
-            "https://cdn.jsdelivr.net",
-        ],
-        'style-src': [
-            "'self'",
-            "'unsafe-inline'",
-            "https://fonts.googleapis.com",
-            "https://cdn.jsdelivr.net",
-            "https://cdnjs.cloudflare.com",
-        ],
-        'font-src': [
-            "'self'",
-            "https://fonts.gstatic.com",
-            "https://kit-free.fontawesome.com",
-        ],
-        'img-src': ["'self'", "data:", "https:"],
-        'connect-src': ["'self'"],
-        }
+    'default-src': "'self'",
+    'script-src': [
+        "'self'",
+        "'unsafe-inline'",
+        "https://kit.fontawesome.com",
+        "https://cdn.jsdelivr.net",
+        "https://ka-f.fontawesome.com",
+    ],
+    'style-src': [
+        "'self'",
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://ka-f.fontawesome.com",
+    ],
+    'font-src': [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://ka-f.fontawesome.com",
+    ],
+    'img-src': ["'self'", "data:", "https:"],
+    'connect-src': [
+        "'self'",
+        "https://ka-f.fontawesome.com",
+    ],
+    }
 
     Talisman(app,
-        content_security_policy=csp,
-        content_security_policy_nonce_in=['script-src', 'style-src'])
+            content_security_policy=csp,
+            content_security_policy_nonce_in=['script-src'])
     
     # Register Blueprints
     from .routes.auth_routes import auth_bp
