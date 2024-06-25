@@ -71,6 +71,14 @@ body {
     color: #2b4a69 !important; /* Darken on hover/focus for better interaction feedback */
 }
 
+.dropdown-item {
+    color: #fcfcfc;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    color: #233d57;
+}
+
 #username, .choose_name {
     color: #fcfcfc;
     font-size: larger;
@@ -166,6 +174,22 @@ h1, #datetime {
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.glass_menu {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.37);
+}
+
+select {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+select option {
+    color: #2b4a69;
 }
 
 /* Custom button style */

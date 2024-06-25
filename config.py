@@ -9,18 +9,18 @@ class Config:
     Configuration class for the PhraseMaster Flask application.
     """
     # Secret key for session management and other security-related needs
-    SECRET_KEY = os.getenv('SECRET_KEY') or 'you-will-never-guess'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SECURE = True
     REMEMBER_COOKIE_HTTPONLY = True
     
     # Database configuration
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # OPENAI API Key
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     
     # Mail configuration
     MAIL_SERVER = 'live.smtp.mailtrap.io'
@@ -28,16 +28,16 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
     MAIL_USERNAME = 'api'
-    MAIL_PASSWORD = ''
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     
     # Security configuration
-    SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT')
+    SECURITY_PASSWORD_SALT = os.environ.get('SECURITY_PASSWORD_SALT')
     
     # OAuth provider configurations
     OAUTH_PROVIDERS = {
         'google': {
-            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
+            'client_id': os.environ.get('GOOGLE_CLIENT_ID'),
+            'client_secret': os.environ.get('GOOGLE_CLIENT_SECRET'),
             'authorize_url': 'https://accounts.google.com/o/oauth2/auth',
             'access_token_url': 'https://accounts.google.com/o/oauth2/token',
             'userinfo_endpoint': 'https://www.googleapis.com/oauth2/v3/userinfo',

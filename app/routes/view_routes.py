@@ -1,5 +1,5 @@
 from flask import Blueprint, request, session, redirect, url_for, flash, render_template
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
@@ -106,49 +106,45 @@ def vote():
     # Handle GET request: Fetch the category from the query parameters
     if category:
         try:
-            challenge_result = session_db.execute(
-                text('SELECT challenge_id FROM daily_challenges WHERE category = :category ORDER BY date DESC LIMIT 1'),
-                {'category': category}
-            ).fetchone()
+            # Calculate the date for the previous day
+            yesterday = datetime.now() - timedelta(days=1)
+            yesterday_date = yesterday.date()
             
-            # Check if there are any submissions in the category
-            if challenge_result == None:
-                return render_template('main/error.html', error_message='There are no submissions in this category today. Go submit something!')
-
-            # Fetch two random submissions for the given category
-            if challenge_result:
-                challenge_id = challenge_result[0]
-                submissions_result = session_db.execute(
-                    text('''
-                        SELECT id, username, category, challenge, user_phrase, votes FROM submissions 
-                        WHERE challenge_id = :challenge_id 
-                        ORDER BY RANDOM() 
-                        LIMIT 2
-                    '''),
-                    {'challenge_id': challenge_id}
-                ).fetchall()
-                submissions = [{column: value for column, value in zip(['id', 'username', 'category', 'challenge', 'user_phrase', 'votes'], submission)} for submission in submissions_result]
-
-                # Check if there are enough submissions to vote on
-                if len(submissions) < 2:
-                    return render_template('main/error.html', error_message='Not enough submissions to vote on.')
+            # Fetch two random submissions from the previous day for the given category
+            submissions_result = session_db.execute(
+                text('''
+                    SELECT id, username, category, challenge, user_phrase, votes 
+                    FROM submissions 
+                    WHERE category = :category 
+                    AND DATE(date) = :yesterday_date
+                    ORDER BY RANDOM() 
+                    LIMIT 2
+                '''),
+                {'category': category, 'yesterday_date': yesterday_date}
+            ).fetchall()
+            
+            submissions = [{column: value for column, value in zip(['id', 'username', 'category', 'challenge', 'user_phrase', 'votes'], submission)} for submission in submissions_result]
+            
+            # Check if there are enough submissions to vote on
+            if len(submissions) < 2:
+                return render_template('main/error.html', error_message='Not enough submissions to vote on.')
                 
-                # Fetch the leaderboard for the category
-                leaderboard_result = session_db.execute(
-                    text('''
-                        SELECT username, SUM(votes) as total_votes
-                        FROM submissions
-                        WHERE category = :category
-                        GROUP BY username
-                        ORDER BY total_votes DESC
-                        LIMIT 10
-                    '''),
-                    {'category': category}
-                ).fetchall()
+            # Fetch the leaderboard for the category
+            leaderboard_result = session_db.execute(
+                text('''
+                    SELECT username, SUM(votes) as total_votes
+                    FROM submissions
+                    WHERE category = :category
+                    GROUP BY username
+                    ORDER BY total_votes DESC
+                    LIMIT 10
+                '''),
+                {'category': category}
+            ).fetchall()
 
-                leaderboard = [{column: value for column, value in zip(['username', 'total_votes'], entry)} for entry in leaderboard_result]
-                
-                return render_template('votes/vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
+            leaderboard = [{column: value for column, value in zip(['username', 'total_votes'], entry)} for entry in leaderboard_result]
+            
+            return render_template('votes/vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
 
         # Handle exceptions
         except Exception as e:

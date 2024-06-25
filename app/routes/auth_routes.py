@@ -226,7 +226,7 @@ def authorize(provider):
         # Log in the user if they exist
         if user_record:
             user_dict = user_record._mapping
-            user = User(**user_dict)
+            user = session_db.query(User).filter_by(id=user_dict['id']).first()
             session['user'] = {'id': user.id, 'name': user.name, 'email': user.email}
             session.modified = True
             update_login_streak(user, session_db)
