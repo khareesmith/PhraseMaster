@@ -98,7 +98,7 @@
         {% if unverified %}
         <div class="mt-3">
             <p>Didn't receive the verification email? 
-                <a href="#" onclick="event.preventDefault(); document.getElementById('resend-form').submit();">
+                <a href="{{ url_for('auth.resend_verification') }}" id="resend-link">
                     Resend verification
                 </a>
             </p>
@@ -106,6 +106,13 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             </form>
         </div>
+
+        <script nonce="{{ csp_nonce() }}">
+        document.getElementById('resend-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('resend-form').submit();
+        });
+        </script>
         {% endif %}
 
     </main>
