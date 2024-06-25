@@ -46,8 +46,14 @@ body {
 /* Navbar Styles */
 .navbar {
     position: fixed; /* Stick the navbar to the top */
-    background: transparent; /* Semi-transparent background */
-    backdrop-filter: blur(5px); /* Apply a blur effect */
+    background: rgba(255, 255, 255, 0.7); /* Fallback for devices that don't support backdrop-filter */
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.7),
+        rgba(255, 255, 255, 0.5)
+    );
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
     border-bottom: none;
     box-shadow: none;
     position: fixed; /* Stick the navbar to the top */
@@ -169,7 +175,13 @@ h1, #datetime {
 }
 
 .glass {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.7);
+    background: linear-gradient(
+        to bottom right,
+        rgba(255, 255, 255, 0.7),
+        rgba(255, 255, 255, 0.3)
+    );
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -510,6 +522,14 @@ footer p {
 
 .social-links a:hover {
     color: #233d57;
+}
+
+@media screen and (max-width: 767px) {
+    .navbar, .glass {
+        background: rgba(255, 255, 255, 0.8);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
 }
 
 @media screen and (min-width: 768px){
