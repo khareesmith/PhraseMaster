@@ -402,42 +402,48 @@ def change_password():
     return render_template('profile/change_password.html')
 
 # Resend verification email route
-@auth_bp.route('/resend_verification', methods=['POST'])
+@auth_bp.route('/resend_verification', methods=['GET', 'POST'])
 def resend_verification():
-    # Validate the CSRF token
-    try:
-        validate_csrf(request.form.get('csrf_token'))
-    except CSRFError:
-        flash("Invalid CSRF token", "error")
+    if request.method == 'POST':
+        # Validate the CSRF token
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+        except CSRFError:
+            flash("Invalid CSRF token", "error")
+            return redirect(url_for('auth.login'))
+        
+        # Check if there is an unverified email in the session
+        email = session.get('unverified_user')
+        if not email:
+            flash('No unverified email found.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        try:
+            with get_db_connection() as session_db:
+                user = session_db.execute(
+                    text('SELECT * FROM users WHERE email = :email'), {'email': email}
+                ).fetchone()
+                
+                # Check if the user exists and has not verified their email. Resend the verification email if the user exists
+                if user and not user.email_verified:
+                    token = generate_confirmation_token(email)
+                    confirm_url = url_for('auth.confirm_email', token=token, _external=True)
+                    html = render_template('auth/confirm_email.html', confirm_url=confirm_url)
+                    send_verification_email([email], html)
+                    flash(f'A verification email has been sent to {email}. Please check your Inbox and Spam folder.', 'success')
+                else:
+                    flash('User not found or already verified.', 'error')
+        
+        # Handle database errors
+        except SQLAlchemyError as e:
+            session_db.rollback()
+            flash(f"An error occurred: {e}", 'error')
+            return "Database error", 500
+    
+    elif request.method == 'GET':
+        # Handle GET request (e.g., when JavaScript is disabled)
+        flash('Please use the form to resend the verification email.', 'info')
         return redirect(url_for('auth.login'))
-    
-    # Check if there is an unverified email in the session
-    email = session.get('unverified_user')
-    if not email:
-        flash('No unverified email found.', 'error')
-        return redirect(url_for('auth.login'))
-    
-    try:
-        with get_db_connection() as session_db:
-            user = session_db.execute(
-                text('SELECT * FROM users WHERE email = :email'), {'email': email}
-            ).fetchone()
-            
-            # Check if the user exists and has not verified their email. Resend the verification email if the user exists
-            if user and not user.email_verified:
-                token = generate_confirmation_token(email)
-                confirm_url = url_for('auth.confirm_email', token=token, _external=True)
-                html = render_template('auth/confirm_email.html', confirm_url=confirm_url)
-                send_verification_email([email], html)
-                flash(f'A verification email has been sent to {email}. Please check your Inbox and Spam folder.', 'success')
-            else:
-                flash('User not found or already verified.', 'error')
-    
-    # Handle database errors
-    except SQLAlchemyError as e:
-        session_db.rollback()
-        flash(f"An error occurred: {e}", 'error')
-        return "Database error", 500
     
     return redirect(url_for('auth.login'))
 
