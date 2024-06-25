@@ -10,16 +10,15 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     </head>
     <body>
-
         <header>
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <nav class="navbar navbar-expand-lg navbar-light">
                 <div class="container-fluid">
                     <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                        <img src="{{ url_for('static', filename='logo.svg') }}" alt="PhraseMaster Logo" height="40">
+                        <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
                     </a>
         
                     {% if 'user' in session %}
-                    <span class="navbar-text ms-3">
+                    <span class="navbar-text ms-3" id="username">
                     Current Username: {{ session['user']['name'] }}
                     </span>
                     {% endif %}
@@ -31,14 +30,15 @@
                     <div class="collapse navbar-collapse text-center justify-content-end" id="mainnav">
                         <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+                                <a class="nav-link active" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
                             </li>
                             {% if 'user' in session %}
                             <li class="nav-item">
-                                <a class="nav-link active" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i>Back to Profile</a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+                            </li>
+                            {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
                             </li>
                             {% endif %}
                         </ul>
@@ -49,7 +49,7 @@
 
         <main class="d-flex align-items-center">
         <div class="container mt-5">
-            <div class="card">
+            <div class="card glass">
                 <div class="card-body">
                     <h1 class="text-center">Choose a Username</h1>
                     <form method="POST" class="mt-3">
@@ -58,22 +58,22 @@
                                 <div class="form-check">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <input class="form-check-input" type="radio" id="{{ username }}" name="username" value="{{ username }}" required>
-                                    <label class="form-check-label" for="{{ username }}">{{ username }}</label>
+                                    <label class="form-check-label choose_name" for="{{ username }}">{{ username }}</label>
                                 </div>
                             {% endfor %}
                         </div>
-                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Submit</button>
                     </form>
                     <form method="GET" action="{{ url_for('auth.generate_usernames') }}" class="mt-3">
-                        <button type="submit" class="btn btn-warning">New Usernames</button>
+                        <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-warning">New Usernames</button>
                     </form>
                 </div>
             </div>
         </div>
         </main>
 
-        <footer class="bg-light text-center py-4 mt-4">
-            <p>&copy; 2024 PhraseMaster. All rights reserved.</p>
+        <footer class="text-center">
+            <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
             <div class="social-links">
                 <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
                 <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>

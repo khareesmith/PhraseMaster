@@ -9,9 +9,26 @@ body {
     display: flex; /* Use flexbox for layout */
     flex-direction: column; /* Stack flex items vertically */
     background-size: 400% 400%;
-    animation: gradientBG 30s ease infinite;
+    animation: gradientBG 300s ease infinite;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.5) rgba(255, 255, 255, 0.1);
+}
+
+.flash-container {
+    position: fixed;
+    top: 79px; /* Adjust this value based on the height of your navbar */
+    left: 0;
+    right: 0;
+    z-index: 99; /* Ensure flash message appears above other content but below navbar */
+    margin: 0 auto;
+    width: 100%;
+    text-align: center;
+}
+
+.alert {
+    display: inline-block;
+    margin: 0 auto;
+    z-index: 99;
 }
 
 @keyframes gradientBG {
@@ -54,9 +71,26 @@ body {
     color: #2b4a69 !important; /* Darken on hover/focus for better interaction feedback */
 }
 
-#username {
+#username, .choose_name {
     color: #fcfcfc;
     font-size: larger;
+}
+
+.vote_name {
+    color: #2b4a69;
+    font-size: xx-large;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.vote_phrase {
+    color: #fcfcfc;
+    font-size: x-large;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* Webkit browsers (Chrome, Safari, newer versions of Edge) */
@@ -160,6 +194,20 @@ h1, #datetime {
 .phrasecraze-btn-primary:hover, .phrasecraze-btn-primary:focus {
     background: rgba(0, 123, 255, 0.8);
     color: #ffffff;
+}
+
+/* Outline Primary button */
+.phrasecraze-btn-outline-primary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(0, 123, 255, 0.8);
+    color: rgba(0, 123, 255, 0.9);
+}
+
+.phrasecraze-btn-outline-primary:hover, .phrasecraze-btn-outline-primary:focus {
+    background: rgba(0, 123, 255, 0.2);
+    border-color: rgba(0, 123, 255, 1);
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 /* Secondary action button */

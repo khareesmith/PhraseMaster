@@ -147,6 +147,8 @@ document.addEventListener('DOMContentLoaded', function () {
         feedbackDisplay.innerHTML = '';
         feedbackDisplay.style.display = 'none';
         clearFeedbackButton.style.display = 'none'; // Hide the button after clearing
+        phraseInput.value = '';
+        submissionForm.style.display = 'none';
     });
 
     // Add event listeners to category buttons

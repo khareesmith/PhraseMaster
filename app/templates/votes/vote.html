@@ -10,16 +10,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="PhraseMaster Logo" height="40">
+                    <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
                 </a>
     
                 {% if 'user' in session %}
-                <span class="navbar-text ms-3">
+                <span class="navbar-text ms-3" id="username">
                     Welcome: {{ session['user']['name'] }}
                 </span>
                 {% endif %}
@@ -57,22 +56,24 @@
         </nav>
     </header>
 
-    <main class="container text-center">
-
     <!-- Display flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
             <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
                 {{ message }}
             </div>
         {% endfor %}
-    {% endwith %}
+        {% endwith %}
+    </div>
+
+    <main class="container text-center">
 
         <!-- Prompt Section -->
     <div class="prompt">
         <h1 class="mt-5 display-4">{{ submission1['category'].replace('_', ' ') | title }} Voting</h1>
         <p class="mb-4 fs-4">Vote for your favorite submission</p>
-        <div class="card text-center m-3">
+        <div class="card text-center m-3 glass">
             <p class="lead m-2"><em>{{ submission1['challenge'] }}</em></p>
         </div>
     </div>
@@ -80,28 +81,28 @@
         <!-- Voting Section -->
         <div class="cards row">
             <div class="col-md-6 d-flex">
-                <div class="card pb-3 mb-4 flex-fill"> 
-                    <h2 class="m-3 mx-4">{{ submission1['username'] }}</h2>
-                    <p class="p-3"><em>{{ submission1['user_phrase'] }}</em></p>
+                <div class="card pb-3 mb-4 flex-fill glass"> 
+                    <h2 class="m-3 mx-4 vote_name">{{ submission1['username'] }}</h2>
+                    <p class="p-3 vote_phrase"><em>{{ submission1['user_phrase'] }}</em></p>
                     <div class="mt-auto">
                     <form method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="username" value="{{ submission1['username'] }}">
-                            <button type="submit" name="submission_id" value="{{ submission1['id'] }}" class="btn btn-primary">Vote {{ submission1['username'] }}</button>
+                            <button type="submit" name="submission_id" value="{{ submission1['id'] }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Vote {{ submission1['username'] }}</button>
                     </form>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-6 d-flex">
-                <div class="card pb-3 mb-4 flex-fill">
-                    <h2 class="m-3 mx-4">{{ submission2['username'] }}</h2>
-                    <p class="p-3"><em>{{ submission2['user_phrase'] }}</em></p>
+                <div class="card pb-3 mb-4 flex-fill glass">
+                    <h2 class="m-3 mx-4 vote_name">{{ submission2['username'] }}</h2>
+                    <p class="p-3 vote_phrase"><em>{{ submission2['user_phrase'] }}</em></p>
                     <div class="mt-auto">
                         <form method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="username" value="{{ submission2['username'] }}">
-                            <button type="submit" name="submission_id" value="{{ submission2['id'] }}" class="btn btn-primary">Vote {{ submission2['username'] }}</button>
+                            <button type="submit" name="submission_id" value="{{ submission2['id'] }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Vote {{ submission2['username'] }}</button>
                         </form>
                     </div>
                 </div>
@@ -109,7 +110,7 @@
         </div>
 
         <!-- Leaderboard Section -->
-    <div class="leaderboard-card">
+    <div class="leaderboard-card glass">
         <h1><p id='datetime'></p> Leaderboard - {{ submission1['category'].replace('_', ' ') | title }}</h1>
         <ul>
             {% for entry in leaderboard %}
@@ -137,18 +138,17 @@
                     <option value="movie_quote">Movie Quote</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary mt-4">Vote</button>
+            <button type="submit" class="btn phrasecraze-btn mt-4">Vote</button>
         </form>
     </div>
 
     <div class="mt-4"> 
-        <a class="btn btn-outline-primary" href="{{ url_for('view.index') }}">Return Home</a>
+        <a class="btn phrasecraze-btn phrasecraze-btn-outline-primary" href="{{ url_for('view.index') }}">Return Home</a>
         </div>
-
     </main>
 
-    <footer class="bg-light text-center py-4 mt-4">
-        <p>&copy; 2024 PhraseMaster. All rights reserved.</p>
+    <footer class="text-center">
+        <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
         <div class="social-links">
             <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
             <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>
