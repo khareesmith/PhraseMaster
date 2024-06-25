@@ -1,5 +1,6 @@
 from flask import Flask, session
 from flask_wtf.csrf import CSRFProtect
+from flask_talisman import Talisman
 from flask_mail import Mail
 from flask_session import Session
 from authlib.integrations.flask_client import OAuth
@@ -32,6 +33,8 @@ def create_app():
     oauth = OAuth(app)
     for name, config in app.config['OAUTH_PROVIDERS'].items():
         oauth.register(name=name, **config)
+    
+    Talisman(app, force_https=True)
     
     # Register Blueprints
     from .routes.auth_routes import auth_bp
