@@ -44,6 +44,7 @@ def create_app():
         "https://ka-f.fontawesome.com",
         "https://accounts.google.com",
         "https://apis.google.com",
+        "https://cdnjs.cloudflare.com",
     ],
     'style-src': [
         "'self'",
