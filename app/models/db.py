@@ -1,4 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Date, BigInteger, ForeignKey, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, Date, BigInteger, ForeignKey, Boolean, JSON, DateTime
+from sqlalchemy.types import TypeDecorator
+import json
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import current_app
@@ -25,6 +27,19 @@ engine = create_engine(DATABASE_URL)
 
 # Create a configured "Session" class
 Session = sessionmaker(bind=engine)
+
+class JSONEncodedDict(TypeDecorator):
+    impl = Text
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
 
 # Define the User model
 class User(Base):
@@ -80,7 +95,8 @@ class User(Base):
     
     # Vote fields
     daily_votes = Column(Integer, default=0)
-    last_vote_date = Column(Date)
+    last_vote_date = Column(DateTime)
+    votes_per_category = Column(JSONEncodedDict, default={})
     
     def set_password(self, password):
         """

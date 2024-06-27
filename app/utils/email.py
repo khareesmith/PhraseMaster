@@ -17,7 +17,7 @@ def send_verification_email(to, template):
     """
     from app import mail
     
-    msg = Message('PhraseMaster: Please Verify Your Email', sender='noreply@khareesmith.com', recipients=to, html=template)
+    msg = Message('PhraseCraze: Please Verify Your Email', sender='noreply@khareesmith.com', recipients=to, html=template)
     mail.send(msg)
 
 # Helper function to send password reset emails
@@ -34,7 +34,7 @@ def send_pass_reset_email(to, template):
     """
     from app import mail
     
-    msg = Message('PhraseMaster: Password Reset', sender='noreply@khareesmith.com', recipients=to, html=template)
+    msg = Message('PhraseCraze: Password Reset', sender='noreply@khareesmith.com', recipients=to, html=template)
     mail.send(msg)
     
 # Helper function to validate email format

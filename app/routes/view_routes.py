@@ -4,11 +4,16 @@ from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
 from app.models.db import get_db_connection, User
-from app.utils.streaks import update_voting_streak
+from app.utils.vote import get_user_votes, increment_user_vote, reset_daily_votes, MAX_VOTES_PER_CATEGORY, format_category_name
 import bleach
 
 # Create a Blueprint for the view routes
 view_bp = Blueprint('view', __name__)
+
+@view_bp.before_request
+def before_request():
+    # This will reset votes daily. You might want to optimize this to run only once per day.
+    reset_daily_votes()
 
 # Route to the index page
 @view_bp.route('/')
@@ -34,8 +39,30 @@ def vote():
     """
     session_db = get_db_connection()
     category = request.args.get('category')
+    formatted_category = format_category_name(category)
     username = request.args.get('username')
-    MAX_VOTES_PER_DAY = 10
+    
+    # Fetch the user object
+    user_id = session['user']['id']
+    user = session_db.query(User).filter_by(id=user_id).first()
+    
+    votes_used = 0
+    votes_remaining = MAX_VOTES_PER_CATEGORY
+    progress_class = ''
+    
+    if user:
+        votes_used = get_user_votes(user, category)
+        votes_remaining = MAX_VOTES_PER_CATEGORY - votes_used
+    
+    if votes_remaining == 0:
+        progress_class = 'danger'
+        progress_width = 100
+    elif votes_remaining <= 2:
+        progress_class = 'warning'
+        progress_width = (votes_used / MAX_VOTES_PER_CATEGORY) * 100
+    else:
+        progress_class = ''
+        progress_width = (votes_used / MAX_VOTES_PER_CATEGORY) * 100
     
     if request.method == 'POST':
         
@@ -65,19 +92,15 @@ def vote():
             flash("You cannot vote for your own submission.", "error")
             return redirect(url_for('view.vote', category=category))
         
-        # Fetch the user object
-        user_id = session['user']['id']
-        user_obj = session_db.query(User).filter_by(id=user_id).first()
+        # Check if the user has reached the voting limit for this category
+        votes_today = get_user_votes(user, category)
         
-        # Reset daily_votes if it's a new day
-        today = datetime.now().date()
-        if user_obj.last_vote_date != today:
-            user_obj.daily_votes = 0
-            user_obj.last_vote_date = today
+        if votes_today is None:
+            flash("An error occurred while retrieving your vote count.", "error")
+            return redirect(url_for('view.vote', category=category))
         
-        # Check if the user has reached the voting limit
-        if user_obj.daily_votes >= MAX_VOTES_PER_DAY:
-            flash("You have reached your voting limit for today.", "error")
+        if votes_today >= MAX_VOTES_PER_CATEGORY:
+            flash(f"You have reached your voting limit for the {formatted_category} category.", "error")
             return redirect(url_for('view.vote', category=category))
         
         # Update the vote count for the selected submission
@@ -87,19 +110,25 @@ def vote():
                 {'id': voted_submission_id}
             )
             
-            # Increment the user's daily votes and update the voting streak
-            user_obj.daily_votes += 1
-            update_voting_streak(user_obj, session_db)
+            # Increment the user's votes for this category and update the voting streak
+            remaining_votes = increment_user_vote(user, category, session_db)
             
+            if remaining_votes is None:
+                raise Exception("Failed to increment user vote")
+
             session_db.commit()
             
-            remaining_votes = MAX_VOTES_PER_DAY - user_obj.daily_votes
-            flash(f"Vote successful! You have {remaining_votes} votes left for today.", "success")
+            if remaining_votes > 0:
+                flash(f"Vote successful! You have {remaining_votes} vote{'s' if remaining_votes != 1 else ''} left for the {formatted_category} category.", "success")
+            else:
+                flash(f"Vote successful! You have used all your votes for the {formatted_category} category today.", "success")
+                
             return redirect(url_for('view.vote', category=category))
         except Exception as e:
             session_db.rollback()
             flash("An error occurred while casting your vote.", "error")
-            return render_template('main/error.html', error_message=f"An error occurred: {e}")
+            print(f"Error details: {str(e)}")
+            return render_template('main/error.html', error_message=f"An error occurred: {str(e)}")
         finally:
             session_db.close()
 
@@ -144,7 +173,18 @@ def vote():
 
             leaderboard = [{column: value for column, value in zip(['username', 'total_votes'], entry)} for entry in leaderboard_result]
             
-            return render_template('votes/vote.html', submission1=submissions[0], submission2=submissions[1], leaderboard=leaderboard, username=username)
+            return render_template('votes/vote.html', 
+                        submission1=submissions[0],
+                        submission2=submissions[1],
+                        leaderboard=leaderboard,
+                        username=username,
+                        category=category,
+                        formatted_category=formatted_category,
+                        votes_used=votes_used,
+                        votes_remaining=votes_remaining,
+                        max_votes=MAX_VOTES_PER_CATEGORY,
+                        progress_class=progress_class,
+                        progress_width=progress_width)
 
         # Handle exceptions
         except Exception as e:

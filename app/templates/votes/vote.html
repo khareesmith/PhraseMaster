@@ -84,7 +84,17 @@
         <!-- Prompt Section -->
     <div class="prompt">
         <h1 class="mt-5 display-4">{{ submission1['category'].replace('_', ' ') | title }} Voting</h1>
-        <p class="mb-4 fs-4">Vote for your favorite submission</p>
+        <p class="mb-2 fs-4">Vote for your favorite submission</p>
+
+        <div class="voting-progress-container mb-3">
+            <div class="voting-progress">
+                <div class="progress-container">
+                    <div class="progress-bar {{ progress_class }}" style="width: {{ progress_width }}%;"></div>
+                    <div class="progress-text">{{ votes_remaining }} vote{% if votes_remaining != 1 %}s{% endif %} remaining for {{ formatted_category }}</div>
+                </div>
+            </div>
+        </div>
+
         <div class="card text-center m-3 glass">
             <p class="lead m-2"><em>{{ submission1['challenge'] }}</em></p>
         </div>
