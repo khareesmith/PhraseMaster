@@ -1,19 +1,7 @@
-# Description: Generate a random username using a combination of adjectives and nouns. At least 40,000 unique usernames can be generated using this function.
-
 import random
+from typing import List
 
-# Generate a random username
-def generate_random_username():
-    """
-    Generate a random username using a combination of adjectives and nouns. At least 40,000 unique usernames can be generated using this function.
-    
-    Args:
-        None
-    
-    Returns:
-        str: The generated username
-    """
-    adjectives = [
+ADJECTIVES: List[str] = [
     "Adventurous", "Amusing", "Artistic", "Athletic", "Bold", "Blissful", "Brave", "Bright",
     "Brilliant", "Calm", "Careful", "Charming", "Cheerful", "Clever", "Compassionate", "Confident",
     "Considerate", "Courageous", "Creative", "Curious", "Daring", "Dedicated", "Defiant", "Dependable",
@@ -38,7 +26,7 @@ def generate_random_username():
     "Unstoppable", "Versatile", "Visionary", "Warmhearted", "Welcoming", "Well-rounded", "Winsome"
     ]
 
-    nouns = [
+NOUNS: List[str] = [
     "Banana", "Muffin", "Penguin", "Dragon", "Pizza", "Airplane", "Moon",
     "Cowboy", "Jacket", "Mountain", "Hill", "Pencil", "Tree", "Lightbulb",
     "Cookie", "Hot Dog", "Quesadilla", "Robot", "Guitar", "Flute", "Tiger",
@@ -72,20 +60,39 @@ def generate_random_username():
     "Quartz", "River", "Sky", "Tree", "Undergrowth", "Vine", "Waterfall", "Xeric",
     "Yarrow", "Zenith"
     ]
-    
-    random_username = random.choice(adjectives) + " " + random.choice(nouns)
-    return random_username
+
+# Generate a random username
+def generate_random_username() -> str:
+    """
+    Generate a random username using a combination of adjectives and nouns.
+
+    Returns:
+        str: A randomly generated username.
+
+    Note:
+        This function can generate at least 40,000 unique usernames.
+    """
+    return f"{random.choice(ADJECTIVES)} {random.choice(NOUNS)}"
 
 # Generate a list of three random usernames
-def generate_random_usernames():
+def generate_random_usernames(count: int = 3) -> List[str]:
     """
-    Generate a list of three random usernames.
-    
+    Generate a list of unique random usernames.
+
     Args:
-        None
-    
+        count (int, optional): The number of unique usernames to generate. Defaults to 3.
+
     Returns:
-        list: A list of three randomly generated usernames
+        List[str]: A list of unique randomly generated usernames.
+
+    Raises:
+        ValueError: If count is greater than the number of possible unique combinations.
     """
-    random_usernames = [generate_random_username() for _ in range(3)]
-    return random_usernames
+    max_combinations = len(ADJECTIVES) * len(NOUNS)
+    if count > max_combinations:
+        raise ValueError(f"Cannot generate {count} unique usernames. Maximum is {max_combinations}.")
+
+    usernames = set()
+    while len(usernames) < count:
+        usernames.add(generate_random_username())
+    return list(usernames)

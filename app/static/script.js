@@ -1,174 +1,189 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const categoryButtons = document.querySelectorAll('.category-buttons button');
-    const challengeDisplay = document.getElementById('challenge');
-    const promptDisplay = document.getElementById('prompt');
-    const phraseInput = document.getElementById('phraseInput');
-    const submitPhraseButton = document.getElementById('submit_phrase_button');
-    const feedbackDisplay = document.getElementById('feedback');
-    const submissionForm = document.getElementById('submissionForm');
-    const clearFeedbackButton = document.getElementById('clear_feedback_button');
-    const datetime = document.getElementById('datetime');
+document.addEventListener('DOMContentLoaded', init);
 
-    clearFeedbackButton.textContent = 'Continue';
-    clearFeedbackButton.classList.add('btn', 'btn-secondary', 'mt-3', 'm-0', 'm-auto');
-    clearFeedbackButton.style.display = 'none'; // Initially hidden
+let currentChallengeId = '';
+let currentCategory = '';
+let currentOriginalPrompt = '';
 
-    feedbackDisplay.parentNode.insertBefore(clearFeedbackButton, feedbackDisplay.nextSibling);
+const elements = {
+    categoryButtons: document.querySelectorAll('.category-buttons button'),
+    challengeDisplay: document.getElementById('challenge'),
+    promptDisplay: document.getElementById('prompt'),
+    phraseInput: document.getElementById('phraseInput'),
+    submitPhraseButton: document.getElementById('submit_phrase_button'),
+    resubmitPhraseButton: document.getElementById('resubmit_phrase_button'),
+    feedbackDisplay: document.getElementById('feedback'),
+    submissionForm: document.getElementById('submissionForm'),
+    clearFeedbackButton: document.getElementById('clear_feedback_button'),
+    scoreFirstToggle: document.getElementById('scoreFirstToggle')
+};
 
-    /**
-     * Fetch and display a challenge for the selected category.
-     * @param {string} category - The category for which to generate a challenge.
-     */
-    async function fetchChallenge(category) {
-        if (!feedbackDisplay || !phraseInput || !challengeDisplay || !submissionForm || !promptDisplay) {
-            console.error('Required elements are missing in the DOM.');
-            return;
-        }
+function init() {
+    setupClearFeedbackButton();
+    setupEventListeners();
+    setDateDisplay();
+}
 
-        feedbackDisplay.textContent = '';
-        feedbackDisplay.style.display = 'none';
-        clearFeedbackButton.style.display = 'none';
-        phraseInput.value = '';
-        promptDisplay.textContent = 'Loading...';
-        challengeDisplay.style.display = 'block';  // Ensure the challenge display is visible
+function setupClearFeedbackButton() {
+    elements.clearFeedbackButton.textContent = 'Continue';
+    elements.clearFeedbackButton.classList.add('btn', 'btn-secondary', 'mt-3', 'm-0', 'm-auto');
+    elements.clearFeedbackButton.style.display = 'none';
+    elements.feedbackDisplay.parentNode.insertBefore(elements.clearFeedbackButton, elements.feedbackDisplay.nextSibling);
+}
 
-        try {
-            const response = await fetch(`/api/generate_challenge/${category}`);
-            const data = await response.json();
-            currentChallengeId = data.challenge_id;
-            currentOriginalPrompt = data.challenge;
-            currentCategory = data.category;
-            
-            // Fade out the old prompt
-            promptDisplay.style.opacity = '0';
-            setTimeout(() => {
-                promptDisplay.textContent = data.challenge;
-                // Fade in the new prompt
-                promptDisplay.style.opacity = '1';
-            }, 300);
-
-            submissionForm.style.display = 'block';
-
-        } catch (error) {
-            console.error('Error fetching challenge:', error);  // Log any errors
-            promptDisplay.textContent = 'Failed to load challenge. Please try again.';
-        }
-    }
-
-    /**
-     * Submit the user's phrase for the current challenge.
-     */
-    async function submitPhrase() {
-        const userPhrase = phraseInput.value;
-
-        if (!userPhrase) {
-            feedbackDisplay.textContent = 'Please enter a phrase before submitting.';
-            feedbackDisplay.style.display = 'block';
-            feedbackDisplay.classList.remove('success');
-            feedbackDisplay.classList.add('error');
-            return;
-        }
-
-        feedbackDisplay.textContent = 'Submitting...';
-        feedbackDisplay.style.display = 'block';
-        feedbackDisplay.classList.remove('success', 'error');
-
-        try {
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            const response = await fetch('/api/submit_phrase', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({
-                    user_id: sessionStorage.getItem('user_id'),  // Use session user_id
-                    username: sessionStorage.getItem('username'),  // Use session username
-                    user_phrase: userPhrase,
-                    user_phrase: userPhrase,
-                    challenge_id: currentChallengeId,
-                    original_prompt: currentOriginalPrompt,
-                    category: currentCategory
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Error submitting phrase:', errorData);
-                feedbackDisplay.textContent = `Error: ${errorData.error}`;
-                feedbackDisplay.style.display = 'block';
-                feedbackDisplay.classList.remove('success');
-                feedbackDisplay.classList.add('error');
-                return;
-            }
-
-            const data = await response.json();
-            feedbackDisplay.innerHTML = formatFeedback(data.feedback);
-            feedbackDisplay.style.display = 'block';
-            feedbackDisplay.classList.remove('error');
-            feedbackDisplay.classList.add('success');
-            clearFeedbackButton.style.display = 'block';
-
-        } catch (error) {
-            console.error('Error submitting phrase:', error);  // Log any errors
-            feedbackDisplay.textContent = 'Failed to submit phrase. Please try again.';
-            feedbackDisplay.style.display = 'block';
-            feedbackDisplay.classList.remove('success');
-            feedbackDisplay.classList.add('error');
-        }
-    }
-
-    function formatFeedback(feedback) {
-        const feedbackParts = feedback.split('\n\n');
-        let strengths = '';
-        let weaknesses = '';
-        let score = '';
-
-        console.log(feedbackParts);
-
-        feedbackParts.forEach(part => {
-            if (part.trim().startsWith('Strengths:')) {
-                strengths = part.replace('Strengths:', '').trim();
-            } else if (part.trim().startsWith('Weaknesses:')) {
-                weaknesses = part.replace('Weaknesses:', '').trim();
-            } else if (part.trim().startsWith('Score:')) {
-                score = part.replace('Score:', '').trim();
-            }
-        });
-
-        return `
-            <strong>Evaluation By GPT</strong>
-            <p class='mt-2 mb-0'><strong>Strengths:</strong></p>
-            <ul class='list-group list-group-flush'>${strengths.split('\n').map(item => item.trim() ? `<li class='list-group-item m-0 p-0'>${item.trim()}</li>` : '').join('')}</ul>
-            <p class='mt-4 mb-0'><strong>Weaknesses:</strong></p>
-            <ul class='list-group list-group-flush'>${weaknesses.split('\n').map(item => item.trim() ? `<li class='list-group-item m-0 p-0'>${item.trim()}</li>` : '').join('')}</ul>
-            <p class='mt-3'><strong>Score:</strong> ${score}</p>
-        `;
-    }
-
-    clearFeedbackButton.addEventListener('click', () => {
-        feedbackDisplay.innerHTML = '';
-        feedbackDisplay.style.display = 'none';
-        clearFeedbackButton.style.display = 'none'; // Hide the button after clearing
-        phraseInput.value = '';
-        submissionForm.style.display = 'none';
-    });
-
-    // Add event listeners to category buttons
-    categoryButtons.forEach(button => {
+function setupEventListeners() {
+    elements.categoryButtons.forEach(button => {
         button.addEventListener('click', () => fetchChallenge(button.id));
     });
+    elements.submitPhraseButton.addEventListener('click', submitPhrase);
+    elements.clearFeedbackButton.addEventListener('click', resetUI);
+}
 
-    // Add event listener to the submit button
-    submitPhraseButton.addEventListener('click', submitPhrase);
+function setDateDisplay() {
+    if (elements.datetime) {
+        elements.datetime.innerHTML = new Date().toLocaleDateString();
+    }
+}
 
-    let currentChallengeId = '';
-    let currentCategory = '';
-    let currentOriginalPrompt = '';
+async function fetchChallenge(category) {
+    if (!validateRequiredElements()) return;
 
-    var todaydate = new Date();
-    var day = todaydate.getDate();
-    var month = todaydate.getMonth() + 1;
-    var year = todaydate.getFullYear();
-    var datestring = day + "/" + month + "/" + year;
+    resetUI();
+    elements.promptDisplay.textContent = 'Loading...';
+    elements.challengeDisplay.style.display = 'block';
 
-    // Insert date and time into HTML
-    datetime.innerHTML = datestring;
-});
+    try {
+        const response = await fetch(`/api/generate_challenge/${category}`);
+        const data = await response.json();
+        updateChallenge(data);
+    } catch (error) {
+        console.error('Error fetching challenge:', error);
+        elements.promptDisplay.textContent = 'Failed to load challenge. Please try again.';
+    }
+}
+
+function validateRequiredElements() {
+    const requiredElements = [elements.feedbackDisplay, elements.phraseInput, elements.challengeDisplay, elements.submissionForm, elements.promptDisplay];
+    if (requiredElements.some(el => !el)) {
+        console.error('Required elements are missing in the DOM.');
+        return false;
+    }
+    return true;
+}
+
+function resetUI() {
+    elements.feedbackDisplay.textContent = '';
+    elements.feedbackDisplay.style.display = 'none';
+    elements.clearFeedbackButton.style.display = 'none';
+    elements.phraseInput.value = '';
+    elements.submissionForm.style.display = 'none';
+}
+
+function updateChallenge(data) {
+    currentChallengeId = data.challenge_id;
+    currentOriginalPrompt = data.challenge;
+    currentCategory = data.category;
+    
+    fadeTransition(elements.promptDisplay, data.challenge);
+    elements.submissionForm.style.display = 'block';
+}
+
+function fadeTransition(element, newText) {
+    element.style.opacity = '0';
+    setTimeout(() => {
+        element.textContent = newText;
+        element.style.opacity = '1';
+    }, 300);
+}
+
+async function submitPhrase() {
+    const userPhrase = elements.phraseInput.value.trim();
+    const scoreFirst = elements.scoreFirstToggle.checked;
+    const isResubmission = elements.resubmitPhraseButton.style.display !== 'none';
+
+    if (!userPhrase) {
+        displayFeedback('Please enter a phrase before submitting.', 'error');
+        return;
+    }
+
+    displayFeedback('Submitting...', '');
+
+    try {
+        const response = await sendPhraseToServer(userPhrase, scoreFirst, isResubmission);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error);
+        }
+        const data = await response.json();
+
+        if (scoreFirst && !isResubmission) {
+            // First submission with "Score First" option
+            displayFeedback(formatFeedback(data.feedback), 'info');
+            elements.resubmitPhraseButton.style.display = 'inline-block';
+            elements.submitPhraseButton.style.display = 'none';
+        } else {
+            // Direct submission or resubmission
+            displayFeedback("Phrase submitted successfully!", 'success');
+            elements.clearFeedbackButton.style.display = 'block';
+            elements.resubmitPhraseButton.style.display = 'none';
+            elements.submitPhraseButton.style.display = 'inline-block';
+            elements.phraseInput.value = ''; // Clear the input field
+            elements.scoreFirstToggle.checked = false; // Reset toggle to "Send It"
+        }
+    } catch (error) {
+        console.error('Error submitting phrase:', error);
+        displayFeedback(`Error: ${error.message}`, 'error');
+    }
+}
+
+elements.submitPhraseButton.addEventListener('click', submitPhrase);
+elements.resubmitPhraseButton.addEventListener('click', submitPhrase);
+
+function displayFeedback(message, type) {
+    elements.feedbackDisplay.innerHTML = message;
+    elements.feedbackDisplay.style.display = 'block';
+    elements.feedbackDisplay.className = type ? `alert alert-${type}` : 'alert alert-info';
+}
+
+async function sendPhraseToServer(userPhrase, scoreFirst, isResubmission) {
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    return fetch('/api/submit_phrase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({
+            user_id: sessionStorage.getItem('user_id'),
+            username: sessionStorage.getItem('username'),
+            user_phrase: userPhrase,
+            challenge_id: currentChallengeId,
+            original_prompt: currentOriginalPrompt,
+            category: currentCategory,
+            score_first: scoreFirst,
+            is_resubmission: isResubmission
+        })
+    });
+}
+
+function formatFeedback(feedback) {
+    const feedbackParts = feedback.split('\n\n');
+    let strengths = '';
+    let weaknesses = '';
+    let score = '';
+
+    feedbackParts.forEach(part => {
+        if (part.trim().startsWith('Strengths:')) {
+            strengths = part.replace('Strengths:', '').trim();
+        } else if (part.trim().startsWith('Weaknesses:')) {
+            weaknesses = part.replace('Weaknesses:', '').trim();
+        } else if (part.trim().startsWith('Score:')) {
+            score = part.replace('Score:', '').trim();
+        }
+    });
+
+    return `
+        <strong>Evaluation By GPT</strong>
+        <p class='mt-2 mb-0'><strong>Strengths:</strong></p>
+        <ul class='list-group list-group-flush'>${strengths.split('\n').map(item => item.trim() ? `<li class='list-group-item m-0 p-0'>${item.trim()}</li>` : '').join('')}</ul>
+        <p class='mt-4 mb-0'><strong>Weaknesses:</strong></p>
+        <ul class='list-group list-group-flush'>${weaknesses.split('\n').map(item => item.trim() ? `<li class='list-group-item m-0 p-0'>${item.trim()}</li>` : '').join('')}</ul>
+        <p class='mt-3'><strong>Score:</strong> ${score}</p>
+    `;
+}

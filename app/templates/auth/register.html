@@ -1,152 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Register - PhraseMaster</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="https://kit.fontawesome.com/00ac27e367.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js" integrity="sha512-TZlMGFY9xKj38t/5m2FzJ+RM/aD5alMHDe26p0mYUMoCF5G7ibfHUQILq0qQPV3wlsnCwL+TPRNK4vIWGLOkUQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
-                </a>
+{% extends "base.html" %}
+
+{% block title %}Register - Phrase Craze{% endblock %}
+
+{% block navbar_items %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+    </li>
     
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainnav" aria-controls="mainnav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
+            {{ super() }}
+    </li>
     
-                <div class="collapse navbar-collapse text-center justify-content-end" id="mainnav">
-                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
-                            <ul class="dropdown-menu glass_menu">
-                                <li><a class="dropdown-item" href="/vote/?category=tiny_story">Tiny Story</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=scene_description">Scene Description</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=specific_word">Specific Word</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=rhyming_phrase">Structured Phrase</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=emotion">Emotion</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=dialogue">Dialogue</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=idiom">Idiom</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=slogan">Slogan</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=movie_quote">Movie Quote</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
+    {% if 'user' in session %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+    </li>
+    {% else %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
+    </li>
+    {% endif %}
+{% endblock %}
 
-    <!-- Display flash messages -->
-    <div class="flash-container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-        {% endwith %}
-    </div>
-
-    <main class="container mt-5">
-        <h2>Register</h2>
-        <form method="POST" action="{{ url_for('auth.register') }}">
-            <div class="mb-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <label for="email" class="form-label">Email:</label>
-                <input type="email" class="form-control" id="email" name="email" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password:</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-
-            <div class="strength-meter" id="strength-meter">
-                <div class="strength-0"></div>
-            </div>
-            <p id="strength-text"></p>
-
-            <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Register</button>
-        </form>
-
-        <!-- Login with Google button -->
-        <form method="POST" action="{{ url_for('auth.login_provider', provider='google') }}">
+{% block content %}
+<div class="container mt-5">
+    <h2>Register</h2>
+    <form method="POST" action="{{ url_for('auth.register') }}">
+        <div class="mb-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button class="btn phrasecraze-btn phrasecraze-btn-google mt-2" href=""><i class="fa-brands fa-google"></i> Register with Google</button>
-        </form>
-
-    </main>
-    <footer class="text-center">
-        <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
-        <div class="social-links">
-            <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="mx-2"><i class="fab fa-instagram"></i></a>
+            <label for="email" class="form-label">Email:</label>
+            <input type="email" class="form-control" id="email" name="email" required>
         </div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-    <script nonce="{{ csp_nonce() }}">
-        const passwordInput = document.getElementById('password');
-        const strengthMeter = document.getElementById('strength-meter');
-        const strengthText = document.getElementById('strength-text');
+        <div class="mb-3">
+            <label for="password" class="form-label">Password:</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
 
-        const detailedSuggestions = {
-            "Add another word or two. Uncommon words are better.": "Aim for 3-4 words. The more unusual the combination, the better. 'purple-octopus-glasses' is far stronger than 'password123'.",
-            "Use a few words, avoid common phrases": "Combine unrelated words to create a unique password. Instead of 'iloveyou' or 'password123', try 'dancing-banana-moonlight'. This is much harder for hackers to guess, as it's not based on common phrases or patterns.",
-            "Avoid sequences": "Avoid obvious sequences like '123456', 'abcdef', or repeated characters like 'aaaaaa'. Mix things up with random numbers and letters.",
-            "Avoid recent years": "Hackers often try recent years, so avoid using '2024', '2023', or other easily guessable dates.",
-            "Avoid years that are associated with you": "Birth years or anniversary dates are prime targets for hackers. Avoid using years that are personally significant to you.",
-            "Avoid dates and years that are associated with you": "Significant dates, like birthdays or memorable events, should not be included in your password. Hackers can easily find this information online.",
-            "Avoid common names and surnames": "Your name, family names, or common surnames are easy to guess.  Instead, use a combination of unrelated words or characters that don't reveal personal information.",
-            "Predictable substitutions like '@' instead of 'a' don't help very much": "Swapping letters for symbols (e.g., '@' for 'a') is a common trick, but hackers know it. Instead, focus on creating a longer, more complex password with a variety of characters.",
-            "Capitalization doesn't help very much": "While using capital letters can add some complexity, it's not enough on its own. Combine capitalization with other strategies like longer passphrases, random characters, and numbers to make your password truly strong.",
-            "Reversed words aren't much harder to guess":  "Simply reversing a word ('password' to 'drowssap') doesn't make it significantly harder to crack. Focus on creating a more complex password with a combination of techniques.",
-            "Add some numbers": "Numbers are an important element of strong passwords. Include a mix of numbers throughout your passphrase or word combination, making it even harder to guess.",
-            "Add some symbols": "Adding symbols to your password increases its complexity and makes it more difficult to crack. Aim for a few special characters mixed in with your letters and numbers.",
-            "Use a longer keyboard pattern with more turns": "Avoid simple horizontal or vertical lines. Instead, try a zigzag, a spiral, or a random pattern across the keyboard."
-        };
+        <div class="strength-meter" id="strength-meter">
+            <div class="strength-0"></div>
+        </div>
+        <p id="strength-text"></p>
 
-        passwordInput.addEventListener('input', function() {
-            const password = passwordInput.value;
+        <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Register</button>
+    </form>
 
-            if (password === '') {
-                strengthMeter.firstElementChild.className = 'strength-0';
-                strengthMeter.firstElementChild.style.width = '0%';
-                strengthText.textContent = '';
-                return;
-            }
+    <!-- Login with Google button -->
+    <form method="POST" action="{{ url_for('auth.login_provider', provider='google') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button class="btn phrasecraze-btn phrasecraze-btn-google mt-2" href=""><i class="fa-brands fa-google"></i> Register with Google</button>
+    </form>
+</div>
+{% endblock %}
 
-            const result = zxcvbn(password);
-            const score = result.score;
-            const feedbackSuggestions = result.feedback.suggestions.map(suggestion => detailedSuggestions[suggestion] || suggestion);
-            const feedback = feedbackSuggestions.join(' ');
-            
-            const meterClasses = ['strength-0', 'strength-1', 'strength-2', 'strength-3', 'strength-4'];
-            const meterWidths = ['25%', '50%', '75%', '100%', '100%'];
-            strengthMeter.firstElementChild.className = meterClasses[score];
-            strengthMeter.firstElementChild.style.width = meterWidths[score];
-            
-            strengthText.textContent = `Password Strength: ${['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][score]}`;
-            if (feedback) {
-                strengthText.textContent += `. Suggestions: ${feedback}`;
-            }
-        });
-    </script>
-</body>
-</html>
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js" integrity="sha512-TZlMGFY9xKj38t/5m2FzJ+RM/aD5alMHDe26p0mYUMoCF5G7ibfHUQILq0qQPV3wlsnCwL+TPRNK4vIWGLOkUQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script nonce="{{ csp_nonce() }}">
+    const passwordInput = document.getElementById('password');
+    const strengthMeter = document.getElementById('strength-meter');
+    const strengthText = document.getElementById('strength-text');
+
+    const detailedSuggestions = {
+        "Add another word or two. Uncommon words are better.": "Aim for 3-4 words. The more unusual the combination, the better. 'purple-octopus-glasses' is far stronger than 'password123'.",
+        "Use a few words, avoid common phrases": "Combine unrelated words to create a unique password. Instead of 'iloveyou' or 'password123', try 'dancing-banana-moonlight'. This is much harder for hackers to guess, as it's not based on common phrases or patterns.",
+        "Avoid sequences": "Avoid obvious sequences like '123456', 'abcdef', or repeated characters like 'aaaaaa'. Mix things up with random numbers and letters.",
+        "Avoid recent years": "Hackers often try recent years, so avoid using '2024', '2023', or other easily guessable dates.",
+        "Avoid years that are associated with you": "Birth years or anniversary dates are prime targets for hackers. Avoid using years that are personally significant to you.",
+        "Avoid dates and years that are associated with you": "Significant dates, like birthdays or memorable events, should not be included in your password. Hackers can easily find this information online.",
+        "Avoid common names and surnames": "Your name, family names, or common surnames are easy to guess.  Instead, use a combination of unrelated words or characters that don't reveal personal information.",
+        "Predictable substitutions like '@' instead of 'a' don't help very much": "Swapping letters for symbols (e.g., '@' for 'a') is a common trick, but hackers know it. Instead, focus on creating a longer, more complex password with a variety of characters.",
+        "Capitalization doesn't help very much": "While using capital letters can add some complexity, it's not enough on its own. Combine capitalization with other strategies like longer passphrases, random characters, and numbers to make your password truly strong.",
+        "Reversed words aren't much harder to guess":  "Simply reversing a word ('password' to 'drowssap') doesn't make it significantly harder to crack. Focus on creating a more complex password with a combination of techniques.",
+        "Add some numbers": "Numbers are an important element of strong passwords. Include a mix of numbers throughout your passphrase or word combination, making it even harder to guess.",
+        "Add some symbols": "Adding symbols to your password increases its complexity and makes it more difficult to crack. Aim for a few special characters mixed in with your letters and numbers.",
+        "Use a longer keyboard pattern with more turns": "Avoid simple horizontal or vertical lines. Instead, try a zigzag, a spiral, or a random pattern across the keyboard."
+    };
+
+    passwordInput.addEventListener('input', function() {
+        const password = passwordInput.value;
+
+        if (password === '') {
+            strengthMeter.firstElementChild.className = 'strength-0';
+            strengthMeter.firstElementChild.style.width = '0%';
+            strengthText.textContent = '';
+            return;
+        }
+
+        const result = zxcvbn(password);
+        const score = result.score;
+        const feedbackSuggestions = result.feedback.suggestions.map(suggestion => detailedSuggestions[suggestion] || suggestion);
+        const feedback = feedbackSuggestions.join(' ');
+        
+        const meterClasses = ['strength-0', 'strength-1', 'strength-2', 'strength-3', 'strength-4'];
+        const meterWidths = ['25%', '50%', '75%', '100%', '100%'];
+        strengthMeter.firstElementChild.className = meterClasses[score];
+        strengthMeter.firstElementChild.style.width = meterWidths[score];
+        
+        strengthText.textContent = `Password Strength: ${['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][score]}`;
+        if (feedback) {
+            strengthText.textContent += `. Suggestions: ${feedback}`;
+        }
+    });
+</script>
+{% endblock %}

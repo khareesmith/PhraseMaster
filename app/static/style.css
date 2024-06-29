@@ -1,113 +1,46 @@
-/* Global Styles */
+:root {
+    --primary-color: #6b9ac4;
+    --secondary-color: #8dc6f4;
+    --text-color: #333;
+    --light-text-color: #fcfcfc;
+    --dark-text-color: #2b4a69;
+    --glass-bg: rgba(255, 255, 255, 0.2);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --input-bg: rgba(255, 255, 255, 0.5);
+    --input-border: rgba(255, 255, 255, 0.3);
+    --submit-button-bg: #3498db;
+    --submit-button-hover-bg: #2980b9;
+}
 
+/* Global Styles */
 body {
-    font-family: 'Helvetica Neue', Arial, sans-serif; /* Use a sans-serif font */
-    background: linear-gradient(-45deg, #6b9ac4, #8dc6f4, #6b9ac4, #8dc6f4);
-    overflow-x: hidden; /* Prevent horizontal scrollbar if content overflows */
-    min-height: 100vh; /* min height of 100% of the viewport height */
-    color: #333; /* color of the text */
-    display: flex; /* Use flexbox for layout */
-    flex-direction: column; /* Stack flex items vertically */
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(-45deg, var(--primary-color), var(--secondary-color), var(--primary-color), var(--secondary-color));
     background-size: 400% 400%;
     animation: gradientBG 300s ease infinite;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.5) rgba(255, 255, 255, 0.1);
-}
-
-.flash-container {
-    position: fixed;
-    top: 79px; /* Adjust this value based on the height of your navbar */
-    left: 0;
-    right: 0;
-    z-index: 99; /* Ensure flash message appears above other content but below navbar */
-    margin: 0 auto;
+    color: var(--text-color);
+    min-height: 100vh;
     width: 100%;
-    text-align: center;
+    max-width: 100vw;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
 }
 
-.alert {
-    display: inline-block;
-    margin: 0 auto;
-    z-index: 99;
+.container {
+    padding-left: 15px;
+    padding-right: 15px;
+    width: 100%;
+    max-width: 100%;
 }
 
 @keyframes gradientBG {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; };
+    50% { background-position: 100% 50%; };
+    100% { background-position: 0% 50%; };
 }
 
-/* Navbar Styles */
-.navbar {
-    position: fixed; /* Stick the navbar to the top */
-    background: rgba(255, 255, 255, 0.7); /* Fallback for devices that don't support backdrop-filter */
-    background: linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.7),
-        rgba(255, 255, 255, 0.5)
-    );
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    border-bottom: none;
-    box-shadow: none;
-    position: fixed; /* Stick the navbar to the top */
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 100; /* Ensure navbar is above other content */ 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for depth */
-}
-
-.navbar-light .navbar-nav .nav-link {
-    color: #1F271B;
-}
-
-.navbar-light .navbar-nav .nav-link:hover,
-.navbar-light .navbar-nav .nav-link:focus {
-    color: #233d57; /* Darken on hover/focus for better interaction feedback */
-}
-
-.nav-item .active {
-    color: #2b4a69 !important; /* Darken on hover/focus for better interaction feedback */
-}
-
-.dropdown-item {
-    color: #1F271B;
-}
-
-.dropdown-item:hover, .dropdown-item:focus {
-    color: #233d57;
-}
-
-#username, .choose_name {
-    color: #2b4a69;
-    font-size: larger;
-}
-
-.vote_name {
-    color: #2b4a69;
-    font-size: xx-large;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-}
-
-.vote_phrase {
-    color: #fcfcfc;
-    font-size: x-large;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Webkit browsers (Chrome, Safari, newer versions of Edge) */
+/* Scrollbar Styles */
 ::-webkit-scrollbar {
     width: 15px;
     background-color: transparent;
@@ -128,15 +61,15 @@ body {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.9);
-}
-
 main {
-    flex: 1; /* Allow main content to grow and take up available space */
+    flex: 1;
     padding-top: 120px;
 }
 
+/* Typography */
+h1, h2, #datetime {
+    color: var(--dark-text-color);
+}
 
 h1 {
     font-size: 3rem;
@@ -153,62 +86,85 @@ h2 {
     margin-bottom: 2rem;
 }
 
-h1, #datetime {
-    margin-top: 20px;
+/* Navbar and Dropdown Styles */
+.navbar {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5));
+    backdrop-filter: blur(5px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: var(--text-color);
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .nav-link:focus,
+.navbar-light .navbar-nav .nav-link.active {
+    color: var(--dark-text-color);
+}
+
+.nav-item .active {
+    color: #2b4a69 !important; /* Darken on hover/focus for better interaction feedback */
+}
+
+.dropdown-item {
+    color: #1F271B;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
     color: #233d57;
 }
 
-#datetime {
-    margin-top: 20px; /* Horizontal margin */
+#username, .choose_name {
+    color: var(--dark-text-color);
+    font-size: larger;
 }
 
-#feedback ul {
-    list-style-type: none;
+/* Flash Messages */
+.flash-container {
+    position: fixed;
+    top: 79px;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    margin: 0 auto;
+    width: 100%;
+    text-align: center;
 }
 
-#clear_feedback_button {
-    margin: 0 auto; /* Center the button horizontally */
+.alert {
+    display: inline-block;
+    margin: 0 auto;
+    z-index: 99;
 }
 
-#datetime {
-    display: inline;
-}
-
+/* Glass Effect */
 .glass {
-    background: rgba(255, 255, 255, 0.2);
-    background: linear-gradient(
-        to bottom right,
-        rgba(255, 255, 255, 0.4),
-        rgba(255, 255, 255, 0.2)
-    );
-    -webkit-backdrop-filter: blur(10px);
+    background: var(--glass-bg);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--glass-border);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
 .glass_menu {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--glass-bg);
     backdrop-filter: blur(8px);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--glass-border);
     box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.37);
 }
 
-select {
-    background-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-select option {
-    color: #2b4a69;
-}
-
-/* Custom button style */
+/* Button Styles */
 .phrasecraze-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #fcfcfc;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--light-text-color);
     transition: all 0.3s ease;
     padding: 10px 20px;
     border-radius: 5px;
@@ -217,11 +173,10 @@ select option {
 
 .phrasecraze-btn:hover, .phrasecraze-btn:focus {
     background: rgba(255, 255, 255, 0.3);
-    color: #2b4a69;
+    color: var(--dark-text-color);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Primary action button */
 .phrasecraze-btn-primary {
     background: rgba(0, 123, 255, 0.6);
     border-color: rgba(0, 123, 255, 0.8);
@@ -316,6 +271,7 @@ select option {
     font-size: 18px;
 }
 
+/* Category Buttons */
 .category-buttons-container {
     display: flex;
     flex-wrap: wrap;
@@ -325,23 +281,23 @@ select option {
 }
 
 .category-buttons button {
-    flex: 0 1 calc(33.333% - 2rem); /* Three buttons per row with spacing */
+    flex: 0 1 calc(33.333% - 2rem);
     min-width: 90px;
     width: 110px;
     max-width: 400px;
     height: auto;
-    color: #fcfcfc;
+    color: var(--light-text-color);
     font-size: 1.1rem;
     padding: 1.2rem;
     margin: 1rem;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: 18px;
     transition: all 0.3s ease;
 }
 
 .category-buttons button:hover {
-    color: #2b4a69;
+    color: var(--dark-text-color);
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
@@ -362,19 +318,29 @@ select option {
     backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 1.5rem;
-    margin-top: 2rem;
+    margin-top: 1rem;
     border: none;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
 }
 
-/* Phrase Input Styles */
+/* Form Styles */
+select {
+    background-color: var(--glass-bg) !important;
+}
+
+select option {
+    color: var(--dark-text-color)
+}
+
 #phraseInput {
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
     border-radius: 10px;
     padding: 0.75rem;
     font-size: 1rem;
     transition: all 0.3s ease;
+    width: 100%;
+    max-width: 100%;
 }
 
 #phraseInput:focus {
@@ -393,9 +359,99 @@ select option {
     transition: opacity 0.3s ease;
 }
 
+#submissionForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-check {
+    margin-bottom: 1rem;
+}
+
+/* Toggle Switch Styles */
+.toggle-container {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 80px;
+    height: 30px;
+    margin: 0 10px;
+}
+
+
+.toggle-input {
+    display: none;
+}
+
+.toggle-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 15px; /* Should be half of the height of toggle-switch */
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: 0.3s;
+}
+
+.toggle-label::after {
+    content: "";
+    position: absolute;
+    top: 2px; /* Adjusted from 2px */
+    left: 2px;
+    width: 24px; /* Adjusted from 26px */
+    height: 24px; /* Adjusted from 26px */
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-input:checked + .toggle-label {
+    background-color: rgba(33, 150, 243, 0.6);
+}
+
+.toggle-input:checked + .toggle-label::after {
+    left: calc(100% - 28px);
+}
+
+.toggle-text {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.toggle-text-score, .toggle-text-send {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: larger;
+}
+
+.toggle-input:checked + .toggle-label .toggle-text-score {
+    color: #fff;
+}
+
+.toggle-input:not(:checked) + .toggle-label .toggle-text-send {
+    color: #fff;
+}
+
 /* Submit Button Styles */
 #submit_phrase_button {
-    background: #3498db;
+    background: var(--submit-button-bg);
     border: none;
     border-radius: 10px;
     padding: 0.75rem 1.5rem;
@@ -406,7 +462,7 @@ select option {
 }
 
 #submit_phrase_button:hover {
-    background: #2980b9;
+    background: var(--submit-button-hover-bg);
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
@@ -419,8 +475,7 @@ select option {
     border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
     padding: 20px;
-    margin-top: 30px;
-}
+    margin-top: 30px;}
 
 #feedback.success {
     color: #3c763d;
@@ -432,6 +487,14 @@ select option {
     color: #a94442;
     background-color: #f2dede;
     border-color: #ebccd1;
+}
+
+#feedback ul {
+    list-style-type: none;
+}
+
+#clear_feedback_button {
+    margin: 0 auto;
 }
 
 .prompt {
@@ -450,7 +513,23 @@ select option {
     margin: 15px 0;
 }
 
-/* Progress Bar Styles */
+/* Voting Styles */
+.vote_name {
+    color: var(--dark-text-color);
+    font-size: xx-large;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.vote_phrase {
+    color: var(--light-text-color);
+    font-size: x-large;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .voting-progress-container {
     width: 100%;
     max-width: 600px;
@@ -472,20 +551,6 @@ select option {
     overflow: hidden;
 }
 
-.progress-bar:hover {
-    background-color: #0056b3;
-}
-
-.voting-progress {
-    width: 100%;
-}
-
-.voting-progress .progress {
-    height: 20px;
-    margin-bottom: 5px;
-    background-color: #e9ecef;
-}
-
 .progress-text {
     position: absolute;
     top: 0;
@@ -505,6 +570,20 @@ select option {
         0 0 2px #fff;
 }
 
+.progress-bar:hover {
+    background-color: #0056b3;
+}
+
+.voting-progress {
+    width: 100%;
+}
+
+.voting-progress .progress {
+    height: 20px;
+    margin-bottom: 5px;
+    background-color: #e9ecef;
+}
+
 /* Color changes based on remaining votes */
 .progress-bar.warning {
     background-color: rgba(255, 193, 7, 0.8);
@@ -514,23 +593,22 @@ select option {
     background-color: rgba(220, 53, 69, 0.8);
 }
 
+
 /* Leaderboard Styles */
 .leaderboard-card {
     background-color: white;
     border: 1px solid #ccc;
     border-radius: 10px;
     padding: 20px;
-    padding-bottom: 30px;
     margin: 20px auto;
     width: 650px;
     max-width: 90%; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-
 .leaderboard-card h1 {
     margin-top: 0;
-    font-size: 24px; /* Adjusted heading size */
+    font-size: 24px;
 }
 
 .leaderboard-card ul {
@@ -552,6 +630,10 @@ select option {
 .leaderboard-card span {
     font-size: 16px;
     color: #555;
+}
+
+#datetime {
+    display: inline;
 }
 
 /* Password Strength Meter Styles */
@@ -580,26 +662,38 @@ select option {
 footer {
     background: transparent;
     backdrop-filter: blur(3px);
-    border-top: none;
     padding: 0.75rem 0;
     margin-top: 3rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow for depth */
 }
 
 footer p {
     margin-bottom: 0.5rem;
-    color: #233d57;
+    color: var(--dark-text-color);
 }
 
 .social-links a {
-    color: #fcfcfc;
+    color: var(--light-text-color);
     font-size: 1.5rem;
     margin: 0 0.5rem;
     transition: color 0.3s ease;
 }
 
 .social-links a:hover {
-    color: #233d57;
+    color: var(--dark-text-color);
+}
+
+@media screen and (max-width: 390px) {
+    .navbar-brand img {
+        height: 40px; /* Reduce logo size */
+    }
+    
+    #username {
+        font-size: 0.99rem; /* Reduce welcome message font size */
+    }
+    
+    .navbar-toggler {
+        padding: 0.25rem 0.5rem; /* Reduce toggler padding */
+    }
 }
 
 @media screen and (min-width: 768px){

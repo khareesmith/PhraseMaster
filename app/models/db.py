@@ -1,15 +1,16 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, Date, BigInteger, ForeignKey, Boolean, JSON, DateTime
-from sqlalchemy.types import TypeDecorator
-import json
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql import text
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import current_app
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import text
-import os, string, random
+import os
+import string
+import random
 from datetime import datetime
+from typing import Optional, List
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -22,24 +23,16 @@ if DATABASE_URL.startswith("postgres://"):
 # SQLAlchemy base model
 Base = declarative_base()
 
-# Create a PostgreSQL engine
-engine = create_engine(DATABASE_URL)
+# Database URL configuration
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Create PostgreSQL engine with best practices
+engine = create_engine(DATABASE_URL, pool_size=5, max_overflow=10, pool_timeout=30, pool_recycle=1800)
 
 # Create a configured "Session" class
 Session = sessionmaker(bind=engine)
-
-class JSONEncodedDict(TypeDecorator):
-    impl = Text
-
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            value = json.dumps(value)
-        return value
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            value = json.loads(value)
-        return value
 
 # Define the User model
 class User(Base):
@@ -75,7 +68,7 @@ class User(Base):
         verify_verification_token: Verify the verification token for the user.
     """
     __tablename__ = 'users'
-    id = Column(Integer, index=True, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     email = Column(String(64), unique=True, nullable=False)
     password_hash = Column(String(256), nullable=True)
     password_salt = Column(String(64), nullable=True)
@@ -83,22 +76,23 @@ class User(Base):
     total_votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
     email_verified = Column(Boolean, nullable=False, default=True, server_default=text("True"))
     google_user = Column(Boolean, nullable=False, default=False, server_default=text("False"))
-    submissions = relationship("Submission", back_populates="user")
     
     # Streak fields
     login_streak = Column(Integer, default=0)
     submission_streak = Column(Integer, default=0)
     voting_streak = Column(Integer, default=0)
-    last_login_date = Column(Date, default=datetime.now())
-    last_submission_date = Column(Date, default=datetime.now())
-    last_voting_date = Column(Date, default=datetime.now())
+    last_login_date = Column(Date, default=datetime.now)
+    last_submission_date = Column(Date, default=datetime.now)
+    last_voting_date = Column(Date, default=datetime.now)
     
     # Vote fields
     daily_votes = Column(Integer, default=0)
     last_vote_date = Column(DateTime)
-    votes_per_category = Column(JSONEncodedDict, default={})
+    votes_per_category = Column(JSONB, default={})
     
-    def set_password(self, password):
+    submissions = relationship("Submission", back_populates="user")
+    
+    def set_password(self, password: str) -> None:
         """
         Set the password for the user by salting and hashing the password. Saves both to the database.
         
@@ -113,7 +107,7 @@ class User(Base):
         salted_password = salt + password
         self.password_hash = generate_password_hash(salted_password)
         
-    def check_password(self, password):
+    def check_password(self, password: str) -> bool:
         """
         Check if the password provided matches the hashed password in the database.
         
@@ -126,7 +120,7 @@ class User(Base):
         salted_password = self.password_salt + password
         return check_password_hash(self.password_hash, salted_password)
     
-    def get_verification_token(self, expires_sec=3600):
+    def get_verification_token(self, expires_sec: int = 3600) -> str:
         """
         Get the verification token for the user.
         
@@ -139,7 +133,8 @@ class User(Base):
         s = Serializer(current_app.config['SECRET_KEY'], expires_sec)
         return s.dumps({'user_id': self.id}).decode('utf-8')
     
-    def generate_random_password(length=12):
+    @staticmethod
+    def generate_random_password(length: int = 12) -> str:
         """
         Generate a random password of 12 characters.
         
@@ -150,8 +145,7 @@ class User(Base):
             str: The random password.
         """
         characters = string.ascii_letters + string.digits + string.punctuation
-        random_password = ''.join(random.choice(characters) for i in range(length))
-        return random_password
+        return ''.join(random.choice(characters) for i in range(length))
 
     @staticmethod
     def verify_verification_token(token):
@@ -188,6 +182,8 @@ class Submission(Base):
         initial_score: The initial score of the submission.
         votes: The number of votes the submission has.
         user: The user who submitted the phrase with a relationship to the User model.
+        scored_first: Whether the submission was scored first.
+        final_submission: Whether the submission is the final submission.
         
     Methods:
         None
@@ -203,7 +199,12 @@ class Submission(Base):
     username = Column(String(128), nullable=True)
     initial_score = Column(Integer, nullable=False, default=0, server_default=text("0"))
     votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    
+    scored_first = Column(Boolean, default=False)
+    final_submission = Column(Boolean, default=True)
+    
     user = relationship("User", back_populates="submissions")
+    daily_challenge = relationship("Challenge", back_populates="submissions")
 
 # Define the Challenge model
 class Challenge(Base):
@@ -226,6 +227,8 @@ class Challenge(Base):
     category = Column(String, nullable=False)
     original_challenge = Column(Text, nullable=False)
     date = Column(Date, nullable=False)
+    
+    submissions = relationship("Submission", back_populates="daily_challenge")
 
 # Function to create a database connection
 def get_db_connection():
@@ -238,12 +241,12 @@ def get_db_connection():
     try:
         session = Session()
         return session
-    except SQLAlchemyError as e:
+    except Exception as e:
         print(f"Database connection error: {e}")
         return None
-
+    
 # Function to get a user by email
-def get_user_by_email(session, email):
+def get_user_by_email(session, email: str) -> Optional[User]:
     """
     Retrieve a user from the database by email.
 
@@ -255,14 +258,13 @@ def get_user_by_email(session, email):
         Result: The user row if found, otherwise None.
     """
     try:
-        result = session.execute(text('SELECT * FROM users WHERE email = :email'), {'email': email}).fetchone()
-        return result
-    except SQLAlchemyError as e:
+        return session.query(User).filter_by(email=email).first()
+    except Exception as e:
         print(f"Database operation error: {e}")
         return None
 
 # Function to create a new user
-def create_user(session, email, name, total_votes=0):
+def create_user(session, email: str, name: str, total_votes: int = 0) -> None:
     """
     Create a new user in the database.
 
@@ -275,13 +277,15 @@ def create_user(session, email, name, total_votes=0):
         None
     """
     try:
-        session.execute(text('INSERT INTO users (email, name, total_votes) VALUES (:email, :name, :total_votes)'), {'email': email, 'name': name, 'total_votes': total_votes})
+        new_user = User(email=email, name=name, total_votes=total_votes)
+        session.add(new_user)
         session.commit()
-    except SQLAlchemyError as e:
+    except Exception as e:
         print(f"Database operation error: {e}")
+        session.rollback()
 
 #Function to insert a submission
-def insert_submission(session, user_id, username, date, user_phrase, category, challenge_id, challenge, initial_score):
+def insert_submission(session, user_id: int, username: str, date: datetime, user_phrase: str, category: str, challenge_id: str, challenge: str, initial_score: int, scored_first=False, final_submission=True) -> None:
     """
     Adds a new submission into the database.
 
@@ -295,27 +299,27 @@ def insert_submission(session, user_id, username, date, user_phrase, category, c
         challenge_id (str): The ID of the challenge.
         challenge (str): The original prompt of the challenge.
         initial_score (int): The initial score of the submission.
+        scored_first (bool): Whether the user chose to score first before submitting.
+        final_submission (bool): Whether this is the final submission or a preliminary scoring.
 
     Returns:
         None
     """
     try:
-        session.execute(text("""
-            INSERT INTO submissions (user_id, username, date, user_phrase, category, challenge_id, challenge, initial_score) 
-            VALUES (:user_id, :username, :date, :user_phrase, :category, :challenge_id, :challenge, :initial_score)
-        """), {
-            'user_id': user_id, 'username': username, 'date': date, 'user_phrase': user_phrase, 
-            'category': category, 'challenge_id': challenge_id, 
-            'challenge': challenge, 'initial_score': initial_score
-        })
+        new_submission = Submission(
+            user_id=user_id, username=username, date=date, user_phrase=user_phrase,
+            category=category, challenge_id=challenge_id, challenge=challenge, initial_score=initial_score,
+            scored_first=scored_first, final_submission=final_submission
+        )
+        session.add(new_submission)
         session.commit()
-    except SQLAlchemyError as e:
+    except Exception as e:
         print(f"Database operation error: {e}")
         session.rollback()
         raise
 
 # Function to update a username
-def update_username(session, user_id, new_username):
+def update_username(session, user_id: int, new_username: str) -> None:
     """
     Update the username of a user in the database.
 
@@ -328,17 +332,19 @@ def update_username(session, user_id, new_username):
         None
     """
     try:
-        session.execute(text("UPDATE users SET name = :new_username WHERE id = :user_id"), {'new_username': new_username, 'user_id': user_id})
-        session.execute(text("UPDATE submissions SET username = :new_username WHERE user_id = :user_id"), {'new_username': new_username, 'user_id': user_id})
-        session.commit()
-    except SQLAlchemyError as e:
+        user = session.query(User).filter_by(id=user_id).first()
+        if user:
+            user.name = new_username
+            session.query(Submission).filter_by(user_id=user_id).update({"username": new_username})
+            session.commit()
+    except Exception as e:
         print(f"Database operation error: {e}")
         session.rollback()
     finally:
         session.close()
 
 # Function to check if a phrase has already been submitted
-def phrase_already_submitted(session, user_id, category, date):
+def phrase_already_submitted(session, user_id: int, category: str, date: datetime) -> bool:
     """
     Check if a phrase has already been submitted by a user for a given category and date.
 
@@ -352,22 +358,20 @@ def phrase_already_submitted(session, user_id, category, date):
         bool: True if the phrase has already been submitted, False otherwise.
     """
     try:
-        result = session.execute(text('SELECT user_id FROM submissions WHERE user_id = :user_id AND category = :category AND date = :date'), {'user_id': user_id, 'category': category, 'date': date}).fetchone()
+        result = session.query(Submission).filter_by(
+            user_id=user_id, category=category, date=date
+        ).first()
         return result is not None
-    except SQLAlchemyError as e:
+    except Exception as e:
         print(f"Database operation error: {e}")
         return False
-    finally:
-        session.close()
         
-# Function to create tables if they do not exist
 def create_tables():
     Base.metadata.create_all(engine)
-    
-# Function to drop tables if needed
+
 def drop_tables():
     Base.metadata.drop_all(engine)
 
-# Call these functions initially to drop and create the tables in the database. Comment out the drop_tables() function if you do not want to drop the tables.
+# Uncomment these lines if you want to recreate the tables
 # drop_tables()
 create_tables()

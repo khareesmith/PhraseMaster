@@ -1,17 +1,18 @@
 from flask import Blueprint, jsonify, request, session
+from sqlalchemy import text
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import text
-import bleach
-
 from app.models.db import get_db_connection, phrase_already_submitted, insert_submission, User
 from app.utils.score import calculate_initial_score
 from app.utils.auth import login_required
 from app.utils.challenge import get_or_create_daily_challenge
 from app.utils.streaks import update_submission_streak
+import bleach
 
 # Create a Blueprint for the API routes
 api_bp = Blueprint('api', __name__)
+
+session_db = get_db_connection()
 
 # Route to generate a challenge
 @api_bp.route('/generate_challenge/<category>', methods=['GET'])
@@ -33,7 +34,8 @@ def generate_category_challenge(category):
     challenge = None
     
     # Validate category
-    allowed_categories = ['tiny_story', 'scene_description', 'specific_word', 'rhyming_phrase', 'emotion', 'dialogue', 'idiom', 'slogan', 'movie_quote']
+    allowed_categories = ['tiny_story', 'scene_description', 'specific_word', 'rhyming_phrase', 
+                        'emotion', 'dialogue', 'idiom', 'slogan', 'movie_quote']
     if category not in allowed_categories:
         return jsonify({'error': 'Invalid category'}), 400
     
@@ -42,14 +44,13 @@ def generate_category_challenge(category):
 
     try:
         # Get or create a daily challenge for the category
-        challenge_id, challenge = get_or_create_daily_challenge(category)
+        challenge_id, challenge = get_or_create_daily_challenge(category, session_db)
         if challenge_id is None or challenge is None:
             return jsonify({'error': 'Failed to retrieve or create challenge'}), 500
         
         return jsonify({'challenge_id': challenge_id, 'challenge': challenge, 'category': category})
     except Exception as e:
-        print('Error creating challenge: %s' % e)
-    return jsonify({'error': 'An error occurred while generating the challenge'}), 500
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 # Route for phrase submission
 @api_bp.route('/submit_phrase', methods=['POST'])
@@ -59,17 +60,14 @@ def submit_phrase():
     """
     Submit a phrase for a given challenge. The challenge ID and user phrase are required in the request data. The user must be logged in to submit a phrase.
     """
-    session_db = get_db_connection()
-    # Get the current date
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().date()
     
     try:
         # Validate the user phrase and challenge ID
         data = request.get_json()
         required_fields = ['user_phrase', 'challenge_id']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing field: {field}'}), 400
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
         
         # Check if the user is logged in before phrase submission
         user = session.get('user')
@@ -82,49 +80,44 @@ def submit_phrase():
         challenge_id = bleach.clean(data['challenge_id'])
         
         # Fetch challenge details from the database
-        result = session_db.execute(
+        challenge_data = session_db.execute(
             text("SELECT category, original_challenge FROM daily_challenges WHERE challenge_id = :challenge_id"),
             {'challenge_id': challenge_id}
         ).fetchone()
         
-        if not result:
+        if not challenge_data:
             return jsonify({'error': 'Invalid challenge ID'}), 400
         
-        # Dictionary unpacking to get the challenge data
-        challenge_data = result._asdict()
         user_phrase = data['user_phrase']
-        category = challenge_data['category']
-        challenge = challenge_data['original_challenge']
+        category, challenge = challenge_data
+        score_first = data.get('score_first', False)
+        is_resubmission = data.get('is_resubmission', False)
         
         # Validate that the phrase is at least 3 characters long
         if len(user_phrase) < 3:
             return jsonify({'error': 'Phrase must be at least 3 characters long.'}), 400
         
         # Check if the user has already submitted a phrase for the category today
-        if phrase_already_submitted(session_db, user_id, category, current_date):
+        if not is_resubmission and phrase_already_submitted(session_db, user_id, category, current_date):
             return jsonify({'error': 'You have already submitted a phrase for this category today.'}), 400
 
         # Calculate the initial score and feedback
         initial_score, feedback = calculate_initial_score(user_phrase, category, challenge)
         
+        # If scoring first and not a resubmission, return the feedback without inserting into the database
+        if score_first and not is_resubmission:
+            # Only calculate score, don't insert into database
+            initial_score, feedback = calculate_initial_score(user_phrase, category, challenge)
+            return jsonify({'message': 'Phrase scored', 'feedback': feedback, 'score': initial_score}), 200
+        
         # Validate user ID, user phrase, challenge ID, challenge, and category
-        if not user_id:
-            return jsonify({'error': 'Missing user ID'}), 400
+        if not all([user_id, user_phrase, challenge_id, challenge, category]):
+            missing = [field for field in ['user ID', 'user phrase', 'challenge ID', 'challenge', 'category'] if not locals()[field.replace(' ', '_')]]
+            return jsonify({'error': f"Missing {', '.join(missing)}"}), 400
         
-        if not user_phrase:
-            return jsonify({'error': 'Missing user phrase'}), 400
-        
-        if not challenge_id:
-            return jsonify({'error': 'Missing challenge ID'}), 400
-        
-        if not challenge:
-            return jsonify({'error': 'Missing challenge'}), 400
-        
-        if not category:
-            return jsonify({'error': 'Missing category'}), 400
-        
-        # Insert into the database
-        insert_submission(session_db, user_id, username, current_date, user_phrase, category, challenge_id, challenge, initial_score)
+        # For direct submission or resubmission, insert into database without scoring
+        insert_submission(session_db, user_id, username, datetime.now().date(), user_phrase, category, 
+                        challenge_id, challenge, initial_score=0, scored_first=score_first)
         
         # Commit the insertion to ensure the user and submission are in the database
         session_db.commit()
@@ -135,17 +128,14 @@ def submit_phrase():
             update_submission_streak(user_obj, session_db)
             session_db.commit()
     
+        return jsonify({'message': 'Submission successful!'}), 200
+        
     # Handle database errors
     except SQLAlchemyError as e:
         session_db.rollback()
         return jsonify({'error': 'Database error: ' + str(e)}), 500
     
-    # Handle key errors
-    except KeyError as e:
-        session_db.rollback()
-        return jsonify({'error': 'KeyError: ' + str(e)}), 400
-    
-    # Handle all other exceptions
+    # Handle other exceptions
     except Exception as e:
         session_db.rollback()
         return jsonify({'error': 'An unexpected error occurred: ' + str(e)}), 500

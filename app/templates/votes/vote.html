@@ -1,87 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" data-bs-theme="dark">
-    <title>PhraseMaster Voting</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="https://kit.fontawesome.com/00ac27e367.js" crossorigin="anonymous"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{{ url_for('view.index') }}">
-                    <img src="{{ url_for('static', filename='logo-3.png') }}" alt="PhraseCraze Logo" height="50">
-                </a>
-    
-                {% if 'user' in session %}
-                <span class="navbar-text ms-3" id="username">
-                    Welcome: {{ session['user']['name'] }}
-                </span>
-                {% endif %}
-    
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainnav" aria-controls="mainnav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-    
-                <div class="collapse navbar-collapse text-center justify-content-end" id="mainnav">
-                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
-                            <ul class="dropdown-menu glass_menu">
-                                <li><a class="dropdown-item" href="/vote/?category=tiny_story">Tiny Story</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=scene_description">Scene Description</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=specific_word">Specific Word</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=rhyming_phrase">Structured Phrase</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=emotion">Emotion</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=dialogue">Dialogue</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=idiom">Idiom</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=slogan">Slogan</a></li>
-                                <li><a class="dropdown-item" href="/vote/?category=movie_quote">Movie Quote</a></li>
-                            </ul>
-                        </li>
-                        {% if 'user' in session %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
-                        </li>
-                        {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
+{% extends "base.html" %}
 
-    <!-- Display flash messages -->
-    <div class="flash-container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-        {% endwith %}
-    </div>
+{% block title %}Phrase Craze Voting - {{ submission1['category'].replace('_', ' ') | title }}{% endblock %}
 
-    <main class="container text-center">
+{% block navbar_items %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+    </li>
+    
+    <li class="nav-item dropdown">
+        <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
+            {{ super() }}
+    </li>
+    
+    {% if 'user' in session %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+    </li>
+    {% else %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
+    </li>
+    {% endif %}
+{% endblock %}
 
-        <!-- Prompt Section -->
+{% block content %}
+    <!-- Prompt Section -->
     <div class="prompt">
         <h1 class="mt-5 display-4">{{ submission1['category'].replace('_', ' ') | title }} Voting</h1>
         <p class="mb-2 fs-4">Vote for your favorite submission</p>
@@ -100,38 +49,38 @@
         </div>
     </div>
 
-        <!-- Voting Section -->
-        <div class="cards row">
-            <div class="col-md-6 d-flex">
-                <div class="card pb-3 mb-4 flex-fill glass"> 
-                    <h2 class="m-3 mx-4 vote_name">{{ submission1['username'] }}</h2>
-                    <p class="p-3 vote_phrase"><em>{{ submission1['user_phrase'] }}</em></p>
-                    <div class="mt-auto">
-                    <form method="POST">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="username" value="{{ submission1['username'] }}">
-                            <button type="submit" name="submission_id" value="{{ submission1['id'] }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Vote {{ submission1['username'] }}</button>
-                    </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 d-flex">
-                <div class="card pb-3 mb-4 flex-fill glass">
-                    <h2 class="m-3 mx-4 vote_name">{{ submission2['username'] }}</h2>
-                    <p class="p-3 vote_phrase"><em>{{ submission2['user_phrase'] }}</em></p>
-                    <div class="mt-auto">
-                        <form method="POST">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="username" value="{{ submission2['username'] }}">
-                            <button type="submit" name="submission_id" value="{{ submission2['id'] }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Vote {{ submission2['username'] }}</button>
-                        </form>
-                    </div>
+    <!-- Voting Section -->
+    <div class="cards row">
+        <div class="col-md-6 d-flex">
+            <div class="card pb-3 mb-4 flex-fill glass"> 
+                <h2 class="m-3 mx-4 vote_name">{{ submission1['username'] }}</h2>
+                <p class="p-3 vote_phrase"><em>{{ submission1['user_phrase'] }}</em></p>
+                <div class="mt-auto">
+                <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="username" value="{{ submission1['username'] }}">
+                        <button type="submit" name="submission_id" value="{{ submission1['id'] }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Vote {{ submission1['username'] }}</button>
+                </form>
                 </div>
             </div>
         </div>
 
-        <!-- Leaderboard Section -->
+        <div class="col-md-6 d-flex">
+            <div class="card pb-3 mb-4 flex-fill glass">
+                <h2 class="m-3 mx-4 vote_name">{{ submission2['username'] }}</h2>
+                <p class="p-3 vote_phrase"><em>{{ submission2['user_phrase'] }}</em></p>
+                <div class="mt-auto">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="username" value="{{ submission2['username'] }}">
+                        <button type="submit" name="submission_id" value="{{ submission2['id'] }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Vote {{ submission2['username'] }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Section -->
     <div class="leaderboard-card glass">
         <h1><p id='datetime'></p> Leaderboard - {{ submission1['category'].replace('_', ' ') | title }}</h1>
         <ul>
@@ -167,25 +116,17 @@
     <div class="mt-4"> 
         <a class="btn phrasecraze-btn phrasecraze-btn-outline-primary" href="{{ url_for('view.index') }}">Return Home</a>
         </div>
-    </main>
+{% endblock %}
 
-    <footer class="text-center">
-        <p class="">&copy; 2024 "Phrase Craze". All rights reserved.</p>
-        <div class="social-links">
-            <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="mx-2"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="mx-2"><i class="fab fa-instagram"></i></a>
-        </div>
-    </footer>
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+    var todaydate = new Date();
+    var day = todaydate.getDate();
+    var month = todaydate.getMonth() + 1;
+    var year = todaydate.getFullYear();
+    var datestring = day + "/" + month + "/" + year;
 
-    {% if 'user' in session %}
-    <script nonce="{{ csp_nonce() }}">
-        window.username = "{{ session['user']['name'] }}";
-    </script>
-    {% endif %}
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-</body>
-
-</html>
+    // Insert date and time into HTML
+    document.getElementById('datetime').innerHTML = datestring;
+</script>
+{% endblock %}

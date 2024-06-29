@@ -42,40 +42,44 @@ def vote():
     formatted_category = format_category_name(category)
     username = request.args.get('username')
     
-    # Fetch the user object
-    user_id = session['user']['id']
-    user = session_db.query(User).filter_by(id=user_id).first()
-    
+    # Default values for non-logged-in users
+    user = None
     votes_used = 0
     votes_remaining = MAX_VOTES_PER_CATEGORY
     progress_class = ''
+    progress_width = 0
     
-    if user:
-        votes_used = get_user_votes(user, category)
-        votes_remaining = MAX_VOTES_PER_CATEGORY - votes_used
-    
-    if votes_remaining == 0:
-        progress_class = 'danger'
-        progress_width = 100
-    elif votes_remaining <= 2:
-        progress_class = 'warning'
-        progress_width = (votes_used / MAX_VOTES_PER_CATEGORY) * 100
-    else:
-        progress_class = ''
-        progress_width = (votes_used / MAX_VOTES_PER_CATEGORY) * 100
+    # Fetch the user object
+    if 'user' in session:
+        user_id = session['user']['id']
+        user = session_db.query(User).filter_by(id=user_id).first()
+        
+        if user:
+            votes_used = get_user_votes(user, category)
+            votes_remaining = MAX_VOTES_PER_CATEGORY - votes_used   
+            
+            if votes_remaining == 0:
+                progress_class = 'danger'
+                progress_width = 100
+            elif votes_remaining <= 2:
+                progress_class = 'warning'
+                progress_width = (votes_used / MAX_VOTES_PER_CATEGORY) * 100
+            else:
+                progress_class = ''
+                progress_width = (votes_used / MAX_VOTES_PER_CATEGORY) * 100
     
     if request.method == 'POST':
+        
+        # Check if the user is logged in
+        if 'user' not in session:
+            flash("You must be logged in to vote.", "error")
+            return redirect(url_for('view.vote', category=category))
         
         # Validate CSRF token
         try:
             validate_csrf(request.form.get('csrf_token'))
         except ValidationError:
             flash("Invalid CSRF token.", "error")
-            return redirect(url_for('view.vote', category=category))
-        
-        # Check if the user is logged in
-        if 'user' not in session:
-            flash("You must be logged in to vote.", "error")
             return redirect(url_for('view.vote', category=category))
         
         # Handle the vote submission
@@ -184,7 +188,8 @@ def vote():
                         votes_remaining=votes_remaining,
                         max_votes=MAX_VOTES_PER_CATEGORY,
                         progress_class=progress_class,
-                        progress_width=progress_width)
+                        progress_width=progress_width,
+                        user=user)
 
         # Handle exceptions
         except Exception as e:

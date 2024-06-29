@@ -1,27 +1,16 @@
-# Description: This file contains the function to calculate the initial score of a phrase based on the evaluation criteria provided by the scoring system prompt. The function sends the phrase, category, and original prompt to the OpenAI API for evaluation and extracts the score from the response. If the score extraction fails, it defaults to 0. The extracted score and feedback are returned to the caller.
-
+from typing import Tuple
 from openai import OpenAI
 from flask import current_app
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize the OpenAI client
-client = OpenAI()
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-# Function to calculate the initial score of a phrase
-def calculate_initial_score(phrase, category, original_prompt):
-    """
-    Calculates the initial score of a phrase based on evaluation criteria provided by the scoring system prompt. The function sends the phrase, category, and original prompt to the OpenAI API for evaluation and extracts the score from the response. If the score extraction fails, it defaults to 0.
-    
-    Args:
-        phrase (str): The phrase to evaluate.
-        category (str): The category of the phrase.
-        original_prompt (str): The original prompt for the phrase.
-    
-    Returns:
-        score (int): The calculated score for the phrase.
-        feedback (str): The feedback provided by the scoring system.
-    """
-    
-    scoring_system_prompt = [
+SCORING_SYSTEM_PROMPT = [
         {
             "role": "system",
             "content": 
@@ -98,27 +87,47 @@ def calculate_initial_score(phrase, category, original_prompt):
             * Avoid overly technical language; keep feedback accessible to all players.
             * Do not include any dashes or other characters in the lists in the Strength and Weakness sections. Have the heading and then immediately list the items on separate lines.
             """
-        },
-        {
-            "role": "user",
-            "content": f"Please evaluate this phrase: '{phrase}'\n\nOriginal Prompt: {original_prompt}\n\nCategory: {category}."
         }
     ]
 
-    client.api_key = current_app.config['OPENAI_API_KEY']
-    response = client.chat.completions.create(
-        model="gpt-4o", # Use the GPT-4o model for scoring
-        messages=scoring_system_prompt,
-        temperature=0.6, # Lower temperature for more conservative responses
-    )
+# Function to calculate the initial score of a phrase
+def calculate_initial_score(phrase: str, category: str, original_prompt: str) -> Tuple[int, str]:
+    """
+    Calculates the initial score of a phrase based on evaluation criteria provided by the scoring system prompt.
 
-    feedback = response.choices[0].message.content
-    
+    Args:
+        phrase (str): The phrase to evaluate.
+        category (str): The category of the phrase.
+        original_prompt (str): The original prompt for the phrase.
+
+    Returns:
+        Tuple[int, str]: A tuple containing the calculated score for the phrase and the feedback provided.
+
+    Raises:
+        Exception: If there's an error in calculating the score.
+    """
+
     try:
-        score_str = feedback.split("Score:")[1].split("/")[0].strip()
-        score = int(score_str)
-    except (IndexError, ValueError):
-        # Handle cases where GPT doesn't provide a score in the expected format
-        score = 0  # Default to 0 if score extraction fails
-        print("Warning: Could not extract score from feedback.")
-    return score, feedback
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=SCORING_SYSTEM_PROMPT + [
+                {"role": "user", "content": f"Please evaluate this phrase: '{phrase}'\n\nOriginal Prompt: {original_prompt}\n\nCategory: {category}."}
+            ],
+            temperature=0.6, # Lower temperature for more conservative responses
+        )
+
+        feedback = response.choices[0].message.content
+
+        # Extract score from feedback
+        try:
+            score_str = feedback.split("Score:")[1].split("/")[0].strip()
+            score = int(score_str)
+        except (IndexError, ValueError):
+            current_app.logger.warning("Could not extract score from feedback. Defaulting to 0.")
+            score = 0
+
+        return score, feedback
+
+    except Exception as e:
+        current_app.logger.error(f"Error calculating initial score: {e}")
+        raise

@@ -1,39 +1,32 @@
-from flask import Flask, session
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 from flask_mail import Mail
 from flask_session import Session
 from authlib.integrations.flask_client import OAuth
+from config import Config
 
 # Mail instance
 mail = Mail()
 
-# Create the Flask application
-def create_app():
-    
-    """
-    Create and configure the Flask application.
-    """
-    
-    # Initialize the Flask application and load the configuration
-    app = Flask(__name__)
-    app.config.from_object('config.Config')
+# CSRF protection
+csrf = CSRFProtect()
 
-    # Initialize CSRF protection
-    csrf = CSRFProtect(app)
-    csrf.init_app(app)
-    
-    # Initialize the Flask Session extension
-    Session()
-    
-    # Initialize the Flask Mail extension
-    mail.init_app(app)
-    
-    # Initialize OAuth with the application
-    oauth = OAuth(app)
-    for name, config in app.config['OAUTH_PROVIDERS'].items():
-        oauth.register(name=name, **config)
+# Database connection
+db = SQLAlchemy()
 
+def register_blueprints(app):
+    from app.routes import auth_bp, api_bp, view_bp
+    blueprints = [
+        (auth_bp, '/auth'),
+        (api_bp, '/api'),
+        (view_bp, '/'),
+    ]
+    for blueprint, url_prefix in blueprints:
+        app.register_blueprint(blueprint, url_prefix=url_prefix)
+
+def configure_csp(app):
     csp = {
     'default-src': "'self'",
     'script-src': [
@@ -75,13 +68,36 @@ def create_app():
     Talisman(app,
             content_security_policy=csp,
             content_security_policy_nonce_in=['script-src'])
+
+# Create the Flask application
+def create_app(config_class=Config):
+    
+    # Initialize the Flask application
+    app = Flask(__name__)
+    app.config.from_object(config_class)
     
     # Register Blueprints
-    from .routes.auth_routes import auth_bp
-    from .routes.api_routes import api_bp
-    from .routes.view_routes import view_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(api_bp, url_prefix='/api')
-    app.register_blueprint(view_bp, url_prefix='/')
+    register_blueprints(app)
+
+    # Initialize CSRF protection
+    csrf.init_app(app)
+    
+    # Initialize Talisman
+    configure_csp(app)
+    
+    # Initialize the Flask SQLAlchemy extension
+    db.init_app(app)
+    app.config['SESSION_SQLALCHEMY'] = db
+    
+    # Initialize the Flask Session extension
+    Session(app)
+    
+    # Initialize the Flask Mail extension
+    mail.init_app(app)
+    
+    # Initialize OAuth with the application
+    oauth = OAuth(app)
+    for name, config in app.config['OAUTH_PROVIDERS'].items():
+        oauth.register(name=name, **config)
 
     return app

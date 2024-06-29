@@ -1,19 +1,19 @@
-# Description: Utility functions for generating daily challenges for the PhraseMaster game.
-
-from ..models.db import get_db_connection
+from typing import Tuple, Optional
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 from openai import OpenAI
 from flask import current_app
 from datetime import datetime
 import pytz
 import uuid
-from sqlalchemy.sql import text
+import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Initialize the OpenAI API client
-client = OpenAI()
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # System prompt for Phrase Craze
 SYSTEM_PROMPT = [{
@@ -74,8 +74,7 @@ Always begin with "Create a phrase that..." followed by the specific task, falli
 }]
 
 # Function to generate challenges
-def generate_challenge(category):
-
+def generate_challenge(category: str) -> str:
     """
     Generate a challenge based on the specified category.
 
@@ -83,38 +82,47 @@ def generate_challenge(category):
         category (str): The category for which to generate the challenge.
 
     Returns:
-        str: The generated response from OpenAI.
+        str: The generated challenge response from OpenAI.
+
+    Raises:
+        Exception: If there's an error in generating the challenge.
     """
     
-    client.api_key = current_app.config['OPENAI_API_KEY']
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages= SYSTEM_PROMPT + [{"role": "user", "content": f"Generate a {category} phrase"}],
-        temperature=1.75,
-        presence_penalty= 1.5
-    )
-
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=SYSTEM_PROMPT + [{"role": "user", "content": f"Generate a {category} phrase"}],
+            temperature=1.75,
+            presence_penalty=1.5
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        current_app.logger.error(f"Error generating challenge: {e}")
+        raise
 
 # Function to get or create a daily challenge
-def get_or_create_daily_challenge(category):
+def get_or_create_daily_challenge(category: str, session: Session) -> Tuple[Optional[str], Optional[str]]:
     """
-    Generate a challenge based on the specified category if one does not already exist for the current date. If a challenge already exists for the current date, retrieve it.
-    
+    Generate a challenge based on the specified category if one does not already exist for the current date.
+    If a challenge already exists for the current date, retrieve it.
+
     Args:
         category (str): The category for which to generate the challenge.
-    
+        session (Session): The database session.
+
     Returns:
-        str: The challenge ID in UUID format.
-        str: The challenge text.
+        Tuple[Optional[str], Optional[str]]: The challenge ID and the challenge text.
+
+    Raises:
+        Exception: If there's an error in retrieving or creating the challenge.
     """
-    session_db = get_db_connection()
-    today = datetime.now(pytz.timezone('US/Eastern')).date() # Current date in the US/Eastern timezone
+    
+    today = datetime.now(pytz.timezone('US/Eastern')).date()
     challenge_id = None
     challenge = None
 
     try:
-        result = session_db.execute(
+        result = session.execute(
             text("SELECT original_challenge, date, challenge_id FROM daily_challenges WHERE category = :category ORDER BY date DESC LIMIT 1"),
             {'category': category}
         ).fetchone()
@@ -127,30 +135,26 @@ def get_or_create_daily_challenge(category):
             if challenge_date == today:
                 challenge = challenge_row['original_challenge']
             else:
-                # Generate new challenge if there is no challenge for today
                 challenge = generate_challenge(category)
                 challenge_id = str(uuid.uuid4())
-                session_db.execute(
+                session.execute(
                     text("INSERT INTO daily_challenges (challenge_id, category, original_challenge, date) VALUES (:challenge_id, :category, :original_challenge, :date)"),
                     {'challenge_id': challenge_id, 'category': category, 'original_challenge': challenge, 'date': today}
                 )
-                session_db.commit()
+                session.commit()
         else:
-            # Generate new challenge if the table is empty
             challenge = generate_challenge(category)
             challenge_id = str(uuid.uuid4())
-            session_db.execute(
+            session.execute(
                 text("INSERT INTO daily_challenges (challenge_id, category, original_challenge, date) VALUES (:challenge_id, :category, :original_challenge, :date)"),
                 {'challenge_id': challenge_id, 'category': category, 'original_challenge': challenge, 'date': today}
             )
-            session_db.commit()
+            session.commit()
 
     # Handle exceptions
     except Exception as e:
-        session_db.rollback()
-        print(f"Error in get_or_create_daily_challenge: {e}")
-        return None, None
-    finally:
-        session_db.close()
+        current_app.logger.error(f"Error in get_or_create_daily_challenge: {e}")
+        session.rollback()
+        raise
 
     return challenge_id, challenge

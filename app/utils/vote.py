@@ -40,6 +40,7 @@ def increment_user_vote(user, category, session_db):
         user.votes_per_category = {}
     if today not in user.votes_per_category:
         user.votes_per_category[today] = {}
+        update_voting_streak(user, session_db)
 
     current_votes = user.votes_per_category[today].get(category, 0)
     if current_votes >= MAX_VOTES_PER_CATEGORY:
