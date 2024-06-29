@@ -27,11 +27,54 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="mt-5">User Profile</h1>
-<p><strong>Email:</strong> {{ user.email }}</p>
-<p><strong>Username:</strong> {{ user.name }}</p>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="profile-card">
+                <h1 class="text-center mb-4">{{ user.name }}'s Profile</h1>
+                
+                <div class="row">
+                    <div class="col-md-6 profile-section">
+                        <h3>User Info</h3>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Username:</strong> {{ user.name }}</p>
+                    </div>
+                    <div class="col-md-6 profile-section">
+                        <h3>Streaks</h3>
+                        <div class="streak-info">
+                            <span class="streak-label">Login Streak:</span>
+                            <span class="streak-value">{{ streaks.login }} days</span>
+                        </div>
+                        <div class="streak-info">
+                            <span class="streak-label">Submission Streak:</span>
+                            <span class="streak-value">{{ streaks.submission }} days</span>
+                        </div>
+                        <div class="streak-info">
+                            <span class="streak-label">Voting Streak:</span>
+                            <span class="streak-value">{{ streaks.voting }} days</span>
+                        </div>
+                    </div>
+                </div>
 
-<a class="btn phrasecraze-btn phrasecraze-btn-primary mt-3" href="{{ url_for('auth.choose_username') }}">Choose a New Username</a>
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<a class="btn phrasecraze-btn phrasecraze-btn-secondary mt-3" href="{{ url_for('auth.change_password') }}">Change Password</a>
+                {% if best_submission %}
+                <div class="profile-section">
+                    <h3>Best Submission</h3>
+                    <div class="best-submission">
+                        <h5>{{ best_submission.category|replace('_', ' ')|title }}</h5>
+                        <p><strong>Prompt:</strong> {{ best_submission.challenge }}</p>
+                        <p><strong>Your Phrase:</strong> {{ best_submission.user_phrase }}</p>
+                        <p><strong>Votes:</strong> {{ best_submission.votes }}</p>
+                        <p><small class="text-muted">Submitted on {{ best_submission.date }}</small></p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="text-center mt-4">
+                    <a class="btn phrasecraze-btn phrasecraze-btn-primary" href="{{ url_for('auth.choose_username') }}">Change Username</a>
+                    <a class="btn phrasecraze-btn phrasecraze-btn-secondary" href="{{ url_for('auth.change_password') }}">Change Password</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

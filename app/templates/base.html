@@ -22,7 +22,7 @@
 
                 {% block user_welcome %}
                     {% if 'user' in session %}
-                    <span class="navbar-text ms-3" id="username">
+                    <span class="navbar-text" id="username">
                         Welcome: {{ session['user']['name'] }}
                     </span>
                     {% endif %}

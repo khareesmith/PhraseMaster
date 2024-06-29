@@ -98,6 +98,10 @@ h2 {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+.navbar-brand {
+    margin-right: 0;
+}
+
 .navbar-light .navbar-nav .nav-link {
     color: var(--text-color);
 }
@@ -141,6 +145,34 @@ h2 {
     display: inline-block;
     margin: 0 auto;
     z-index: 99;
+    padding: 15px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
 }
 
 /* Glass Effect */
@@ -658,6 +690,49 @@ select option {
 .strength-3 { background-color: lightgreen; width: 100%; }
 .strength-4 { background-color: green; width: 100%; }
 
+/* Profile Page Styles */
+.profile-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.profile-section {
+    margin-bottom: 2rem;
+}
+
+.profile-section h3 {
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.best-submission {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.streak-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.streak-label {
+    font-weight: bold;
+}
+
+.streak-value {
+    background: rgba(52, 152, 219, 0.2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+}
+
 /* Footer Styling */
 footer {
     background: transparent;
@@ -683,6 +758,7 @@ footer p {
 }
 
 @media screen and (max-width: 390px) {
+
     .navbar-brand img {
         height: 40px; /* Reduce logo size */
     }
@@ -711,6 +787,10 @@ footer p {
 @media screen and (min-width: 992px){
     .category-buttons button {
         width: 300px;
+    }
+
+    .navbar-brand {
+        margin-right: 1rem;
     }
 
     .category-buttons i {

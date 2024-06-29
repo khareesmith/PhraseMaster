@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', init);
 let currentChallengeId = '';
 let currentCategory = '';
 let currentOriginalPrompt = '';
+let hasScored = false;
 
 const elements = {
     categoryButtons: document.querySelectorAll('.category-buttons button'),
@@ -23,6 +24,15 @@ function init() {
     setDateDisplay();
 }
 
+function updateButtonText() {
+    const scoreFirst = elements.scoreFirstToggle.checked;
+    if (scoreFirst && !hasScored) {
+        elements.submitPhraseButton.textContent = 'Score Phrase';
+    } else {
+        elements.submitPhraseButton.textContent = 'Submit Phrase';
+    }
+}
+
 function setupClearFeedbackButton() {
     elements.clearFeedbackButton.textContent = 'Continue';
     elements.clearFeedbackButton.classList.add('btn', 'btn-secondary', 'mt-3', 'm-0', 'm-auto');
@@ -36,6 +46,7 @@ function setupEventListeners() {
     });
     elements.submitPhraseButton.addEventListener('click', submitPhrase);
     elements.clearFeedbackButton.addEventListener('click', resetUI);
+    elements.scoreFirstToggle.addEventListener('change', updateButtonText);
 }
 
 function setDateDisplay() {
@@ -47,18 +58,23 @@ function setDateDisplay() {
 async function fetchChallenge(category) {
     if (!validateRequiredElements()) return;
 
+    clearFeedback();
     resetUI();
     elements.promptDisplay.textContent = 'Loading...';
     elements.challengeDisplay.style.display = 'block';
 
-    try {
-        const response = await fetch(`/api/generate_challenge/${category}`);
-        const data = await response.json();
-        updateChallenge(data);
-    } catch (error) {
-        console.error('Error fetching challenge:', error);
-        elements.promptDisplay.textContent = 'Failed to load challenge. Please try again.';
-    }
+    fetch(`/api/generate_challenge/${category}`)
+        .then(response => response.json())
+        .then(data => {
+            currentChallengeId = data.challenge_id;
+            currentOriginalPrompt = data.challenge;
+            currentCategory = data.category;
+            updateChallenge(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            elements.promptDisplay.textContent = 'Failed to load challenge. Please try again.';
+        });
 }
 
 function validateRequiredElements() {
@@ -71,20 +87,35 @@ function validateRequiredElements() {
 }
 
 function resetUI() {
-    elements.feedbackDisplay.textContent = '';
-    elements.feedbackDisplay.style.display = 'none';
-    elements.clearFeedbackButton.style.display = 'none';
     elements.phraseInput.value = '';
-    elements.submissionForm.style.display = 'none';
+    elements.scoreFirstToggle.checked = false;
+    elements.scoreFirstToggle.disabled = false;
+    elements.submitPhraseButton.textContent = 'Submit Phrase';
+    hasScored = false;
+    updateButtonText();
 }
 
 function updateChallenge(data) {
-    currentChallengeId = data.challenge_id;
-    currentOriginalPrompt = data.challenge;
-    currentCategory = data.category;
-    
+    elements.promptDisplay.textContent = data.challenge;
     fadeTransition(elements.promptDisplay, data.challenge);
     elements.submissionForm.style.display = 'block';
+    updateButtonText();
+    checkPreviousScore();
+}
+function checkPreviousScore() {
+    fetch(`/api/check_previous_score/${currentChallengeId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.previously_scored) {
+                elements.scoreFirstToggle.checked = true;
+                elements.scoreFirstToggle.disabled = true;
+                hasScored = true;
+                updateButtonText();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking previous score:', error);
+        });
 }
 
 function fadeTransition(element, newText) {
@@ -94,7 +125,6 @@ function fadeTransition(element, newText) {
         element.style.opacity = '1';
     }, 300);
 }
-
 async function submitPhrase() {
     const userPhrase = elements.phraseInput.value.trim();
     const scoreFirst = elements.scoreFirstToggle.checked;
@@ -108,26 +138,24 @@ async function submitPhrase() {
     displayFeedback('Submitting...', '');
 
     try {
-        const response = await sendPhraseToServer(userPhrase, scoreFirst, isResubmission);
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error);
-        }
+        const response = await sendPhraseToServer(userPhrase, scoreFirst);
         const data = await response.json();
 
-        if (scoreFirst && !isResubmission) {
-            // First submission with "Score First" option
+        if (!response.ok) {
+            throw new Error(data.error);
+        }
+
+        if (data.message === 'Phrase scored') {
             displayFeedback(formatFeedback(data.feedback), 'info');
-            elements.resubmitPhraseButton.style.display = 'inline-block';
-            elements.submitPhraseButton.style.display = 'none';
-        } else {
-            // Direct submission or resubmission
+            hasScored = true;
+            elements.scoreFirstToggle.disabled = true;
+            updateButtonText();
+        } else if (data.message === 'Submission successful!') {
             displayFeedback("Phrase submitted successfully!", 'success');
-            elements.clearFeedbackButton.style.display = 'block';
-            elements.resubmitPhraseButton.style.display = 'none';
-            elements.submitPhraseButton.style.display = 'inline-block';
-            elements.phraseInput.value = ''; // Clear the input field
-            elements.scoreFirstToggle.checked = false; // Reset toggle to "Send It"
+            // Add a delay before resetting the UI
+            setTimeout(() => {
+                resetUI();
+            }, 3000); // 3 seconds delay
         }
     } catch (error) {
         console.error('Error submitting phrase:', error);
@@ -135,20 +163,44 @@ async function submitPhrase() {
     }
 }
 
-elements.submitPhraseButton.addEventListener('click', submitPhrase);
-elements.resubmitPhraseButton.addEventListener('click', submitPhrase);
-
 function displayFeedback(message, type) {
     elements.feedbackDisplay.innerHTML = message;
     elements.feedbackDisplay.style.display = 'block';
-    elements.feedbackDisplay.className = type ? `alert alert-${type}` : 'alert alert-info';
+
+    // Remove all existing alert classes
+    elements.feedbackDisplay.classList.remove('alert-success', 'alert-danger', 'alert-warning', 'alert-info');
+
+    // Add the appropriate alert class based on the type
+    switch(type) {
+        case 'success':
+            elements.feedbackDisplay.classList.add('alert-success');
+            break;
+        case 'error':
+            elements.feedbackDisplay.classList.add('alert-danger');
+            break;
+        case 'warning':
+            elements.feedbackDisplay.classList.add('alert-warning');
+            break;
+        case 'info':
+        default:
+            elements.feedbackDisplay.classList.add('alert-info');
+            break;
+    }
 }
 
-async function sendPhraseToServer(userPhrase, scoreFirst, isResubmission) {
-    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+function clearFeedback() {
+    elements.feedbackDisplay.textContent = '';
+    elements.feedbackDisplay.style.display = 'none';
+}
+
+async function sendPhraseToServer(userPhrase, scoreFirst) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     return fetch('/api/submit_phrase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
         body: JSON.stringify({
             user_id: sessionStorage.getItem('user_id'),
             username: sessionStorage.getItem('username'),
@@ -156,8 +208,7 @@ async function sendPhraseToServer(userPhrase, scoreFirst, isResubmission) {
             challenge_id: currentChallengeId,
             original_prompt: currentOriginalPrompt,
             category: currentCategory,
-            score_first: scoreFirst,
-            is_resubmission: isResubmission
+            score_first: scoreFirst
         })
     });
 }

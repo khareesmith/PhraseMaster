@@ -61,23 +61,26 @@ def submit_phrase():
     Submit a phrase for a given challenge. The challenge ID and user phrase are required in the request data. The user must be logged in to submit a phrase.
     """
     current_date = datetime.now().date()
+    data = request.get_json()
+    user = session.get('user')
+    user_id = user.get('id')
+    challenge_id = data['challenge_id']
+    score_first = data.get('score_first', False)
+    
+    session_key = f'scored_{challenge_id}'
     
     try:
         # Validate the user phrase and challenge ID
-        data = request.get_json()
         required_fields = ['user_phrase', 'challenge_id']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
         
         # Check if the user is logged in before phrase submission
-        user = session.get('user')
         if not user:
             return jsonify({'error': 'User not logged in'}), 401
         
-        # Sanitize user name and challenge ID
-        user_id = user.get('id')
+        # Sanitize user name
         username = bleach.clean(user.get('name'))
-        challenge_id = bleach.clean(data['challenge_id'])
         
         # Fetch challenge details from the database
         challenge_data = session_db.execute(
@@ -90,37 +93,43 @@ def submit_phrase():
         
         user_phrase = data['user_phrase']
         category, challenge = challenge_data
-        score_first = data.get('score_first', False)
-        is_resubmission = data.get('is_resubmission', False)
         
         # Validate that the phrase is at least 3 characters long
         if len(user_phrase) < 3:
             return jsonify({'error': 'Phrase must be at least 3 characters long.'}), 400
         
         # Check if the user has already submitted a phrase for the category today
-        if not is_resubmission and phrase_already_submitted(session_db, user_id, category, current_date):
+        if phrase_already_submitted(session_db, user_id, category, current_date):
             return jsonify({'error': 'You have already submitted a phrase for this category today.'}), 400
-
-        # Calculate the initial score and feedback
-        initial_score, feedback = calculate_initial_score(user_phrase, category, challenge)
         
-        # If scoring first and not a resubmission, return the feedback without inserting into the database
-        if score_first and not is_resubmission:
-            # Only calculate score, don't insert into database
+        previously_scored = session.get(session_key, False)
+        
+        if score_first and not previously_scored:
             initial_score, feedback = calculate_initial_score(user_phrase, category, challenge)
+            session[session_key] = True
             return jsonify({'message': 'Phrase scored', 'feedback': feedback, 'score': initial_score}), 200
+
+        # If we're here, it's a submission (either direct or after scoring)
+        if previously_scored:
+            # Recalculate score for consistency
+            initial_score, _ = calculate_initial_score(user_phrase, category, challenge)
+        else:
+            initial_score = 0
         
         # Validate user ID, user phrase, challenge ID, challenge, and category
         if not all([user_id, user_phrase, challenge_id, challenge, category]):
             missing = [field for field in ['user ID', 'user phrase', 'challenge ID', 'challenge', 'category'] if not locals()[field.replace(' ', '_')]]
             return jsonify({'error': f"Missing {', '.join(missing)}"}), 400
         
-        # For direct submission or resubmission, insert into database without scoring
-        insert_submission(session_db, user_id, username, datetime.now().date(), user_phrase, category, 
-                        challenge_id, challenge, initial_score=0, scored_first=score_first)
+        # Insert submission into database
+        insert_submission(session_db, user_id, username, current_date, user_phrase, category, 
+                        challenge_id, challenge, initial_score=initial_score, scored_first=score_first)
         
         # Commit the insertion to ensure the user and submission are in the database
         session_db.commit()
+        
+        # Clear the scoring session for this challenge
+        session.pop(session_key, None)
         
         # Fetch the user object for updating the submission streak
         user_obj = session_db.query(User).filter_by(id=user_id).first()
@@ -144,5 +153,8 @@ def submit_phrase():
     finally:
         session_db.close()
     
-    # Return feedback in JSON response
-    return jsonify({'message': 'Submission successful!', 'feedback': feedback})
+@api_bp.route('/check_previous_score/<challenge_id>', methods=['GET'])
+@login_required
+def check_previous_score(challenge_id):
+    previously_scored = session.get(f'scored_{challenge_id}', False)
+    return jsonify({'previously_scored': previously_scored}), 200

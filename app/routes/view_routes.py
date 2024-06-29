@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
-from app.models.db import get_db_connection, User
+from app.models.db import get_db_connection, User, Submission
 from app.utils.vote import get_user_votes, increment_user_vote, reset_daily_votes, MAX_VOTES_PER_CATEGORY, format_category_name
 import bleach
 
@@ -207,7 +207,29 @@ def profile():
     if not user:
         return redirect(url_for('auth.login'))
 
-    return render_template('profile/profile.html', user=user)
+    session_db = get_db_connection()
+    try:
+        user_obj = session_db.query(User).filter_by(id=user['id']).first()
+        
+        # Get user's streaks
+        streaks = {
+            'login': user_obj.login_streak,
+            'submission': user_obj.submission_streak,
+            'voting': user_obj.voting_streak
+        }
+
+        # Get user's best submission
+        best_submission = session_db.query(Submission)\
+            .filter_by(user_id=user['id'])\
+            .order_by(Submission.votes.desc())\
+            .first()
+
+        return render_template('profile/profile.html', 
+                            user=user, 
+                            streaks=streaks, 
+                            best_submission=best_submission)
+    finally:
+        session_db.close()
 
 # Route to the confirm email page
 @view_bp.route('/confirm_email', methods=['GET'])

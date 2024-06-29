@@ -9,9 +9,13 @@ import bleach
 def choose_username():
     """Display username choices and handle the selection."""
     
-    # Check if a user is logged in
+    # Check if a user is logged in or if there's a pending user
     user = session.get('user')
     pending_user = session.get('pending_user')
+    
+    if not user and not pending_user:
+        flash("Please log in to choose a username.", "error")
+        return redirect(url_for('auth.login'))
     
     if request.method == 'POST':
         # Validate the CSRF token
@@ -46,11 +50,15 @@ def choose_username():
                 
             session_db.commit()
             
-            # Sets the session user dictionary with the user's name and email
-            session['pending_user']['username'] = username
-            session['user'] = {'id': user_id, 'name': user_record.name, 'email': email}
-            session.pop('pending_user', None)
+            # Update session
+            if pending_user:
+                session['user'] = {'id': user_id, 'name': username, 'email': email}
+                session.pop('pending_user', None)
+            else:
+                session['user']['name'] = username
+            
             session.modified = True
+            flash("Username successfully set!", "success")
             return redirect(url_for('view.index'))
         
         # Handle database errors
@@ -59,18 +67,17 @@ def choose_username():
             session_db.rollback()
             return "Database error", 500
 
-    if not pending_user and not user:
-        return redirect(url_for('auth.login'))
-
+    # GET request handling
     if pending_user:
-        usernames = pending_user['usernames']
+        usernames = pending_user.get('usernames')
+        email = pending_user.get('email')
     else:
         usernames = generate_random_usernames()
-        session['pending_user'] = {'email': user['email'], 'usernames': usernames}
+        email = user['email']
+        session['pending_user'] = {'email': email, 'usernames': usernames}
         session.modified = True
 
-    is_first_time = 'name' not in session['user'] or session['user']['name'] is None
-    return render_template('profile/choose_username.html', usernames=usernames, is_first_time=is_first_time)
+    return render_template('profile/choose_username.html', usernames=usernames, email=email)
 
 def change_password():
     """Allow users to change their password."""
