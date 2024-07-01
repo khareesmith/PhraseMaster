@@ -18,9 +18,17 @@
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
 </li>
+{% if 'user' in session and session['user'].get('is_admin') %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-user-tie"></i> Admin Dashboard</a>
+    </li>
+{% endif %}
 <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
     {{ super() }}
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
 </li>
 {% if session.get('user') %}
 <li class="nav-item">
@@ -42,7 +50,7 @@
         <div class="col-md-6">
             <div class="card glass">
                 <div class="card-body">
-                    <h1 class="text-center mb-4">{% if is_first_time %}Choose{% else %}Change{% endif %} Username</h1>
+                    <h1 class="text-center mb-4">Choose Username</h1>
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         {% for username in usernames %}

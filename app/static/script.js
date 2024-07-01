@@ -96,7 +96,6 @@ function resetUI() {
 }
 
 function updateChallenge(data) {
-    elements.promptDisplay.textContent = data.challenge;
     fadeTransition(elements.promptDisplay, data.challenge);
     elements.submissionForm.style.display = 'block';
     updateButtonText();
@@ -155,7 +154,7 @@ async function submitPhrase() {
             // Add a delay before resetting the UI
             setTimeout(() => {
                 resetUI();
-            }, 3000); // 3 seconds delay
+            }, 1000); // 1 second delay
         }
     } catch (error) {
         console.error('Error submitting phrase:', error);

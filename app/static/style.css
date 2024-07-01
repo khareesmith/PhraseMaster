@@ -132,7 +132,7 @@ h2 {
 /* Flash Messages */
 .flash-container {
     position: fixed;
-    top: 79px;
+    top: 80px;
     left: 0;
     right: 0;
     z-index: 99;
@@ -141,6 +141,30 @@ h2 {
     text-align: center;
 }
 
+.flash-message {
+    position: relative;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.close-btn {
+    position: absolute;
+    top: 52%;
+    right: -6px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+/* Alert Styles */
 .alert {
     display: inline-block;
     margin: 0 auto;
@@ -628,19 +652,29 @@ select option {
 
 /* Leaderboard Styles */
 .leaderboard-card {
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
     padding: 20px;
     margin: 20px auto;
-    width: 650px;
-    max-width: 90%; 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.leaderboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 .leaderboard-card h1 {
-    margin-top: 0;
-    font-size: 24px;
+    color: var(--dark-text-color);
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    text-align: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 10px;
 }
 
 .leaderboard-card ul {
@@ -651,17 +685,62 @@ select option {
 .leaderboard-card li {
     display: flex;
     justify-content: space-between;
-    padding: 10px;
-    border-bottom: 1px solid #ccc;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s ease;
 }
 
 .leaderboard-card li:last-child {
     border-bottom: none;
 }
 
+.leaderboard-card li:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .leaderboard-card span {
-    font-size: 16px;
-    color: #555;
+    font-size: 0.9rem;
+    color: var(--light-text-color);
+}
+
+.leaderboard-card .username {
+    font-weight: bold;
+    color: var(--dark-text-color);
+}
+
+.leaderboard-card .score {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.leaderboard-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.leaderboard-tabs button {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--light-text-color);
+    padding: 10px 20px;
+    margin: 0 5px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.leaderboard-tabs button.active {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: var(--dark-text-color);
+    font-weight: bold;
+}
+
+.leaderboard-tabs button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 #datetime {
@@ -837,6 +916,10 @@ footer p {
     #username {
         font-size: 0.99rem; /* Reduce welcome message font size */
     }
+
+    .flash-container {
+        top: 70px; /* Adjust flash message position */
+    }
     
     .navbar-toggler {
         padding: 0.25rem 0.5rem; /* Reduce toggler padding */
@@ -852,6 +935,10 @@ footer p {
 
     #main_logo {
         height: 275px;
+    }
+
+    #username {
+        font-size: 1.3rem;
     }
 }
 

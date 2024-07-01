@@ -6,10 +6,20 @@
     <li class="nav-item">
         <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
     </li>
+
+    {% if 'user' in session and session['user'].get('is_admin') %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-user-tie"></i> Admin Dashboard</a>
+    </li>
+    {% endif %}
     
     <li class="nav-item dropdown">
         <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
             {{ super() }}
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
     </li>
     
     {% if 'user' in session %}
@@ -113,9 +123,13 @@
         </form>
     </div>
 
+    <div class="mt-2">
+        <a href="{{ url_for('view.leaderboards') }}" class="btn phrasecraze-btn phrasecraze-btn-secondary mt-3">View All Leaderboards</a>
+    </div>
+    
     <div class="mt-4"> 
         <a class="btn phrasecraze-btn phrasecraze-btn-outline-primary" href="{{ url_for('view.index') }}">Return Home</a>
-        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
@@ -124,7 +138,7 @@
     var day = todaydate.getDate();
     var month = todaydate.getMonth() + 1;
     var year = todaydate.getFullYear();
-    var datestring = day + "/" + month + "/" + year;
+    var datestring = month + "/" + day + "/" + year;
 
     // Insert date and time into HTML
     document.getElementById('datetime').innerHTML = datestring;

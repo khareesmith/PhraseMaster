@@ -3,8 +3,8 @@
 {% block title %}Update User - Phrase Craze{% endblock %}
 
 {% block user_welcome %}
-<span class="navbar-text ms-3" id="username">
-Admin User: {{ session['user']['name'] }}
+<span class="navbar-text" id="username">
+    Admin: {{ session['user']['name'] }}
 </span>
 {% endblock %}
 
@@ -23,6 +23,11 @@ Admin User: {{ session['user']['name'] }}
     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
     {{ super() }}
 </li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
+</li>
+
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
 </li>
@@ -47,13 +52,51 @@ Admin User: {{ session['user']['name'] }}
                     <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
                 </div>
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password">
-                    <small class="form-text text-muted">Leave blank if you don't want to change the password.</small>
+                    <label for="login_streak" class="form-label">Login Streak</label>
+                    <input type="number" class="form-control" id="login_streak" name="login_streak" value="{{ user.login_streak or 0 }}">
+                </div>
+                <div class="mb-3">
+                    <label for="submission_streak" class="form-label">Submission Streak</label>
+                    <input type="number" class="form-control" id="submission_streak" name="submission_streak" value="{{ user.submission_streak or 0 }}">
+                </div>
+                <div class="mb-3">
+                    <label for="voting_streak" class="form-label">Voting Streak</label>
+                    <input type="number" class="form-control" id="voting_streak" name="voting_streak" value="{{ user.voting_streak or 0 }}">
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="is_admin" name="is_admin" {% if user.is_admin %}checked{% endif %}>
+                    <label class="form-check-label" for="is_admin">Is Admin</label>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="email_verified" name="email_verified" {% if user.email_verified %}checked{% endif %}>
+                    <label class="form-check-label" for="email_verified">Email Verified</label>
+                </div>
+                <div class="mb-3">
+                    <label for="votes_per_category" class="form-label">Votes Per Category (JSON)</label>
+                    <textarea class="form-control" id="votes_per_category" name="votes_per_category" rows="5">{{ user.votes_per_category | tojson }}</textarea>
                 </div>
                 <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Update User</button>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        var votesPerCategory = document.getElementById('votes_per_category');
+        var jsonData = JSON.parse(votesPerCategory.value);
+        votesPerCategory.value = JSON.stringify(jsonData, null, 2);
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            try {
+                JSON.parse(votesPerCategory.value);
+            } catch (error) {
+                e.preventDefault();
+                alert('Invalid JSON in Votes Per Category field. Please correct it before submitting.');
+            }
+        });
+    });
+</script>
 {% endblock %}

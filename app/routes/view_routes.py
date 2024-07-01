@@ -5,7 +5,9 @@ from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
 from app.models.db import get_db_connection, User, Submission
 from app.utils.vote import get_user_votes, increment_user_vote, reset_daily_votes, MAX_VOTES_PER_CATEGORY, format_category_name
+from app.utils.get_leaderboard import get_leaderboard
 import bleach
+
 
 # Create a Blueprint for the view routes
 view_bp = Blueprint('view', __name__)
@@ -238,3 +240,22 @@ def confirm_email():
     Render the confirm email page.
     """
     return render_template('auth/confirm_email.html')
+
+@view_bp.route('/leaderboards')
+def leaderboards():
+    categories = ['tiny_story', 'scene_description', 'specific_word', 'rhyming_phrase', 'emotion', 'dialogue', 'idiom', 'slogan', 'movie_quote']
+    today = datetime.now().date()
+    daily_leaderboards = {}
+    weekly_leaderboards = {}
+    monthly_leaderboards = {}
+    
+    for category in categories:
+        daily_leaderboards[category] = get_leaderboard(category, today - timedelta(days=1), today - timedelta(days=1))
+        weekly_leaderboards[category] = get_leaderboard(category, today - timedelta(days=7), today - timedelta(days=1))
+        monthly_leaderboards[category] = get_leaderboard(category, today.replace(day=1) - timedelta(days=1), today - timedelta(days=1))
+    
+    return render_template('votes/leaderboards.html', 
+                            daily_leaderboards=daily_leaderboards,
+                            weekly_leaderboards=weekly_leaderboards,
+                            monthly_leaderboards=monthly_leaderboards,
+                            categories=categories)

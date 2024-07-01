@@ -3,8 +3,8 @@
 {% block title %}View Submissions - Phrase Craze{% endblock %}
 
 {% block user_welcome %}
-<span class="navbar-text ms-3" id="username">
-Admin User: {{ session['user']['name'] }}
+<span class="navbar-text" id="username">
+    Admin: {{ session['user']['name'] }}
 </span>
 {% endblock %}
 
@@ -23,6 +23,11 @@ Admin User: {{ session['user']['name'] }}
     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
     {{ super() }}
 </li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
+</li>
+
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
 </li>
@@ -52,7 +57,7 @@ Admin User: {{ session['user']['name'] }}
                         {% for submission in submissions %}
                         <tr>
                             <td>{{ submission.id }}</td>
-                            <td>{{ submission.date }}</td>
+                            <td>{{ submission.date.strftime('%m/%d/%Y') }}</td>
                             <td>{{ submission.username }}</td>
                             <td>{{ submission.formatted_category }}</td>
                             <td>
@@ -62,6 +67,9 @@ Admin User: {{ session['user']['name'] }}
                                 </span>
                             </td>
                             <td>{{ submission.votes }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.edit_submission', submission_id=submission.id) }}" class="btn phrasecraze-btn phrasecraze-btn-secondary phrasecraze-btn-sm">Edit</a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

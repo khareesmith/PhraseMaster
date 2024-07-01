@@ -1,11 +1,12 @@
 from flask import Blueprint, jsonify, request, session
 from sqlalchemy import text
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 from app.models.db import get_db_connection, phrase_already_submitted, insert_submission, User
 from app.utils.score import calculate_initial_score
-from app.utils.auth import login_required
-from app.utils.challenge import get_or_create_daily_challenge
+from app.utils.auth import login_required, admin_required
+from app.utils.get_challenge import get_or_create_daily_challenge
+from app.utils.get_leaderboard import get_leaderboard, update_daily_leaderboard
 from app.utils.streaks import update_submission_streak
 import bleach
 
@@ -16,7 +17,6 @@ session_db = get_db_connection()
 
 # Route to generate a challenge
 @api_bp.route('/generate_challenge/<category>', methods=['GET'])
-
 def generate_category_challenge(category):
     
     """
@@ -158,3 +158,31 @@ def submit_phrase():
 def check_previous_score(challenge_id):
     previously_scored = session.get(f'scored_{challenge_id}', False)
     return jsonify({'previously_scored': previously_scored}), 200
+
+@api_bp.route('/leaderboard/<category>/<timeframe>')
+def get_leaderboard_api(category, timeframe):
+    today = date.today()
+    if timeframe == 'daily':
+        start_date = end_date = today - timedelta(days=1)
+    elif timeframe == 'weekly':
+        start_date = today - timedelta(days=7)
+        end_date = today - timedelta(days=1)
+    elif timeframe == 'monthly':
+        start_date = today.replace(day=1) - timedelta(days=1)
+        start_date = start_date.replace(day=1)
+        end_date = today - timedelta(days=1)
+    elif timeframe == 'all-time':
+        start_date = date(2000, 1, 1)  # Set this to your app's launch date
+        end_date = today - timedelta(days=1)
+    else:
+        return jsonify({'error': 'Invalid timeframe'}), 400
+
+    leaderboard = get_leaderboard(category, start_date, end_date)
+    return jsonify(leaderboard)
+
+@api_bp.route('/update_leaderboard/<category>', methods=['POST'])
+@login_required
+@admin_required
+def update_leaderboard_api(category):
+    update_daily_leaderboard(category)
+    return jsonify({'message': 'Leaderboard updated successfully'})

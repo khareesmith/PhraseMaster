@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Create New User - Phrase Craze{% endblock %}
+{% block title %}Edit Submission - Phrase Craze{% endblock %}
 
 {% block user_welcome %}
 <span class="navbar-text" id="username">
@@ -38,26 +38,37 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="text-center mb-4">Create New User</h1>
+    <h1 class="text-center mb-4">Edit Submission</h1>
     <div class="card glass">
         <div class="card-body">
             <form method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                    <label for="user_phrase" class="form-label">User Phrase</label>
+                    <textarea class="form-control" id="user_phrase" name="user_phrase" required>{{ submission.user_phrase }}</textarea>
                 </div>
                 <div class="mb-3">
-                    <label for="name" class="form-label">Name</label>
-                    <input type="text" class="form-control" id="name" name="name" required>
+                    <label for="votes" class="form-label">Votes</label>
+                    <input type="number" class="form-control" id="votes" name="votes" value="{{ submission.votes }}" required>
                 </div>
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <label for="date" class="form-label">Date (MM/DD/YYYY)</label>
+                    <input type="text" class="form-control" id="date" name="date" value="{{ submission.date.strftime('%m/%d/%Y') }}" required>
                 </div>
-                <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Create User</button>
+                <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Update Submission</button>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr("#date", {
+            dateFormat: "m/d/Y",
+            allowInput: true
+        });
+    });
+</script>
 {% endblock %}

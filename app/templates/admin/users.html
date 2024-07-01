@@ -3,8 +3,8 @@
 {% block title %}Manage Users - Phrase Craze{% endblock %}
 
 {% block user_welcome %}
-<span class="navbar-text ms-3" id="username">
-Admin User: {{ session['user']['name'] }}
+<span class="navbar-text" id="username">
+    Admin: {{ session['user']['name'] }}
 </span>
 {% endblock %}
 
@@ -23,6 +23,11 @@ Admin User: {{ session['user']['name'] }}
     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
     {{ super() }}
 </li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
+</li>
+
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
 </li>
@@ -44,6 +49,9 @@ Admin User: {{ session['user']['name'] }}
                             <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Admin</th>
+                            <th>Email Verified</th>
+                            <th>Login Streak</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -53,8 +61,11 @@ Admin User: {{ session['user']['name'] }}
                             <td>{{ user.id }}</td>
                             <td>{{ user.name }}</td>
                             <td>{{ user.email }}</td>
+                            <td>{% if user.is_admin %}Yes{% else %}No{% endif %}</td>
+                            <td>{% if user.email_verified %}Yes{% else %}No{% endif %}</td>
+                            <td>{{ user.login_streak or 0 }}</td>
                             <td>
-                                <a href="{{ url_for('admin.update_user', user_id=user.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                                <a href="{{ url_for('admin.update_user', user_id=user.id) }}" class="btn phrasecraze-btn phrasecraze-btn-secondary phrasecraze-btn-sm">Edit</a>
                             </td>
                         </tr>
                         {% endfor %}

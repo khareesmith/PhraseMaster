@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Challenge - Phrase Craze{% endblock %}
+
+{% block user_welcome %}
+<span class="navbar-text" id="username">
+    Admin: {{ session['user']['name'] }}
+</span>
+{% endblock %}
+
+{% block navbar_items %}
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+</li>
+
+{% if 'user' in session and session['user'].get('is_admin') %}
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-user-tie"></i> Admin Dashboard</a>
+    </li>
+{% endif %}
+
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
+    {{ super() }}
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Edit Challenge</h1>
+    <div class="card glass">
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="mb-3">
+                    <label for="original_challenge" class="form-label">Original Challenge</label>
+                    <textarea class="form-control" id="original_challenge" name="original_challenge" required>{{ challenge.original_challenge }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category" required>
+                        <option value="tiny_story" {% if challenge.category == 'tiny_story' %}selected{% endif %}>Tiny Story</option>
+                        <option value="scene_description" {% if challenge.category == 'scene_description' %}selected{% endif %}>Scene Description</option>
+                        <option value="specific_word" {% if challenge.category == 'specific_word' %}selected{% endif %}>Specific Word</option>
+                        <option value="rhyming_phrase" {% if challenge.category == 'rhyming_phrase' %}selected{% endif %}>Rhyming Phrase</option>
+                        <option value="emotion" {% if challenge.category == 'emotion' %}selected{% endif %}>Emotion</option>
+                        <option value="dialogue" {% if challenge.category == 'dialogue' %}selected{% endif %}>Dialogue</option>
+                        <option value="idiom" {% if challenge.category == 'idiom' %}selected{% endif %}>Idiom</option>
+                        <option value="slogan" {% if challenge.category == 'slogan' %}selected{% endif %}>Slogan</option>
+                        <option value="movie_quote" {% if challenge.category == 'movie_quote' %}selected{% endif %}>Movie Quote</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="date" class="form-label">Date (MM/DD/YYYY)</label>
+                    <input type="text" class="form-control" id="date" name="date" value="{{ challenge.date.strftime('%m/%d/%Y') }}" required>
+                </div>
+                <button type="submit" class="btn phrasecraze-btn phrasecraze-btn-primary">Update Challenge</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr("#date", {
+            dateFormat: "m/d/Y",
+            allowInput: true
+        });
+    });
+</script>
+{% endblock %}

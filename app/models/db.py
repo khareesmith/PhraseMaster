@@ -4,17 +4,10 @@ from app.models.base import Base
 from app.models.user import User
 from app.models.submission import Submission
 from app.models.challenge import Challenge
+from app.models.leaderboard import LeaderboardEntry
 import os
 from datetime import datetime
 from typing import Optional
-
-# Load environment variables
-# from dotenv import load_dotenv
-# load_dotenv()
-
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Database URL configuration
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -173,4 +166,4 @@ def drop_tables():
 # drop_tables()
 create_tables()
 
-__all__ = ['User', 'Submission', 'Challenge', 'get_db_connection', 'get_user_by_email', 'create_user', 'insert_submission', 'update_username', 'phrase_already_submitted']
+__all__ = ['User', 'Submission', 'Challenge', 'LeaderboardEntry', 'get_db_connection', 'get_user_by_email', 'create_user', 'insert_submission', 'update_username', 'phrase_already_submitted']

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Phrase Craze - Leaderboards{% endblock %}
+
+{% block navbar_items %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+    </li>
+
+    {% if 'user' in session and session['user'].get('is_admin') %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-user-tie"></i> Admin Dashboard</a>
+    </li>
+    {% endif %}
+    
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
+            {{ super() }}
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
+    </li>
+    
+    {% if 'user' in session %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+    </li>
+    {% else %}
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus"></i> Register</a>
+    </li>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Leaderboards</h1>
+
+    <div class="leaderboard-tabs">
+        <button class="active" data-period="daily">Daily</button>
+        <button data-period="weekly">Weekly</button>
+        <button data-period="monthly">Monthly</button>
+    </div>
+
+    <div id="daily-leaderboards">
+        {% for category in categories %}
+        <div class="leaderboard-card">
+            <h1>{{ category|replace('_', ' ')|title }}</h1>
+            <ul>
+                {% for entry in daily_leaderboards[category] %}
+                <li>
+                    <span class="username">{{ loop.index }}. {{ entry.username }}</span>
+                    <span class="score">{{ entry.total_score }} votes</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="weekly-leaderboards" style="display: none;">
+        {% for category in categories %}
+        <div class="leaderboard-card">
+            <h1>{{ category|replace('_', ' ')|title }}</h1>
+            <ul>
+                {% for entry in weekly_leaderboards[category] %}
+                <li>
+                    <span class="username">{{ loop.index }}. {{ entry.username }}</span>
+                    <span class="score">{{ entry.total_score }} votes</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="monthly-leaderboards" style="display: none;">
+        {% for category in categories %}
+        <div class="leaderboard-card">
+            <h1>{{ category|replace('_', ' ')|title }}</h1>
+            <ul>
+                {% for entry in monthly_leaderboards[category] %}
+                <li>
+                    <span class="username">{{ loop.index }}. {{ entry.username }}</span>
+                    <span class="score">{{ entry.total_score }} votes</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.leaderboard-tabs button');
+    const leaderboards = document.querySelectorAll('[id$="-leaderboards"]');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const period = this.getAttribute('data-period');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            leaderboards.forEach(board => {
+                board.style.display = board.id === `${period}-leaderboards` ? 'block' : 'none';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

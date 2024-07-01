@@ -71,6 +71,7 @@ class User(Base):
     votes_per_category = Column(JSONB, default={})
     
     submissions = relationship("Submission", back_populates="user")
+    leaderboard_entries = relationship("LeaderboardEntry", back_populates="user")
     
     def set_password(self, password: str) -> None:
         """

@@ -3,8 +3,8 @@
 {% block title %}Admin Dashboard - Phrase Craze{% endblock %}
 
 {% block user_welcome %}
-<span class="navbar-text ms-3" id="username">
-Admin User: {{ session['user']['name'] }}
+<span class="navbar-text" id="username">
+    Admin: {{ session['user']['name'] }}
 </span>
 {% endblock %}
 
@@ -23,6 +23,11 @@ Admin User: {{ session['user']['name'] }}
     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
     {{ super() }}
 </li>
+
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.leaderboards') }}"><i class="fa-solid fa-trophy"></i> Leaderboards</a>
+</li>
+
 <li class="nav-item">
     <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
 </li>
