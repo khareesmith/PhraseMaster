@@ -1,27 +1,20 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Date, BigInteger, ForeignKey, Boolean, JSON, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.sql import text
-from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import URLSafeTimedSerializer as Serializer
-from flask import current_app
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.models.base import Base
+from app.models.user import User
+from app.models.submission import Submission
+from app.models.challenge import Challenge
 import os
-import string
-import random
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 # Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# SQLAlchemy base model
-Base = declarative_base()
 
 # Database URL configuration
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -33,202 +26,6 @@ engine = create_engine(DATABASE_URL, pool_size=5, max_overflow=10, pool_timeout=
 
 # Create a configured "Session" class
 Session = sessionmaker(bind=engine)
-
-# Define the User model
-class User(Base):
-    """
-    User model for database.
-    
-    Attributes:
-        id: The user's ID.
-        email: The user's email address.
-        password_hash: The hashed password.
-        password_salt: The salt used to hash the password.
-        name: The user's username.
-        total_votes: The total number of votes the user has.
-        email_verified: Whether the user's email is verified.
-        google_user: Whether the user is a Google user.
-        submissions: The user's submissions which have a relationship to the Submission model.
-        
-        login_streak: The user's login streak.
-        submission_streak: The user's submission streak.
-        voting_streak: The user's voting streak.
-        last_login_date: The date of the user's last login.
-        last_submission_date: The date of the user's last submission.
-        last_voting_date: The date of the user's last vote.
-        
-        daily_votes: The number of votes the user has for the day.
-        last_vote_date: The date of the user's last vote.
-    
-    Methods:
-        set_password: Set the password for the user by salting and hashing the password. Saves both to the database.
-        check_password: Check if the password provided matches the hashed password in the database.
-        get_verification_token: Get a verification token for the user.
-        generate_random_password: Generate a random password of 12 characters.
-        verify_verification_token: Verify the verification token for the user.
-    """
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(64), unique=True, nullable=False)
-    password_hash = Column(String(256), nullable=True)
-    password_salt = Column(String(64), nullable=True)
-    name = Column(String(128), unique=True, nullable=True)
-    total_votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
-    email_verified = Column(Boolean, nullable=False, default=True, server_default=text("True"))
-    google_user = Column(Boolean, nullable=False, default=False, server_default=text("False"))
-    
-    # Streak fields
-    login_streak = Column(Integer, default=0)
-    submission_streak = Column(Integer, default=0)
-    voting_streak = Column(Integer, default=0)
-    last_login_date = Column(Date, default=datetime.now)
-    last_submission_date = Column(Date, default=datetime.now)
-    last_voting_date = Column(Date, default=datetime.now)
-    
-    # Vote fields
-    daily_votes = Column(Integer, default=0)
-    last_vote_date = Column(DateTime)
-    votes_per_category = Column(JSONB, default={})
-    
-    submissions = relationship("Submission", back_populates="user")
-    
-    def set_password(self, password: str) -> None:
-        """
-        Set the password for the user by salting and hashing the password. Saves both to the database.
-        
-        Args:
-            password (str): The password to set.
-        
-        Returns:
-            None
-        """
-        salt = os.urandom(16).hex()
-        self.password_salt = salt
-        salted_password = salt + password
-        self.password_hash = generate_password_hash(salted_password)
-        
-    def check_password(self, password: str) -> bool:
-        """
-        Check if the password provided matches the hashed password in the database.
-        
-        Args:
-            password (str): The password to set.
-        
-        Returns:
-            bool: True if the password matches, False otherwise.
-        """
-        salted_password = self.password_salt + password
-        return check_password_hash(self.password_hash, salted_password)
-    
-    def get_verification_token(self, expires_sec: int = 3600) -> str:
-        """
-        Get the verification token for the user.
-        
-        Args:
-            expires_sec (int): The number of seconds before the token expires.
-        
-        Returns:
-            str: The verification token.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'], expires_sec)
-        return s.dumps({'user_id': self.id}).decode('utf-8')
-    
-    @staticmethod
-    def generate_random_password(length: int = 12) -> str:
-        """
-        Generate a random password of 12 characters.
-        
-        Args:
-            length (int): The length of the password.
-        
-        Returns:
-            str: The random password.
-        """
-        characters = string.ascii_letters + string.digits + string.punctuation
-        return ''.join(random.choice(characters) for i in range(length))
-
-    @staticmethod
-    def verify_verification_token(token):
-        """
-        Verify the verification token for the user.
-        
-        Args:
-            token (str): The verification token.
-        
-        Returns:
-            User: The user if the token is valid, otherwise None.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            user_id = s.loads(token)['user_id']
-        except:
-            return None
-        return User.query.get(user_id)
-    
-# Define the Submission model    
-class Submission(Base):
-    """
-    Submission model for the database.
-    
-    Attributes:
-        id: The submission ID.
-        date: The date of the submission.
-        category: The category of the submission.
-        challenge_id: The ID of the challenge.
-        challenge: The original challenge prompt.
-        user_phrase: The phrase submitted by the user.
-        user_id: The ID of the user who submitted the phrase.
-        username: The username of the user who submitted the phrase.
-        initial_score: The initial score of the submission.
-        votes: The number of votes the submission has.
-        user: The user who submitted the phrase with a relationship to the User model.
-        scored_first: Whether the submission was scored first.
-        final_submission: Whether the submission is the final submission.
-        
-    Methods:
-        None
-    """
-    __tablename__ = 'submissions'
-    id = Column(BigInteger, primary_key=True)
-    date = Column(Date, nullable=False, index=True)
-    category = Column(String(64), nullable=False)
-    challenge_id = Column(String(128), ForeignKey('daily_challenges.challenge_id'), nullable=False)
-    challenge = Column(Text, nullable=False)
-    user_phrase = Column(Text, nullable=True, default="")
-    user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=False)
-    username = Column(String(128), nullable=True)
-    initial_score = Column(Integer, nullable=False, default=0, server_default=text("0"))
-    votes = Column(Integer, nullable=False, default=0, server_default=text("0"))
-    
-    scored_first = Column(Boolean, default=False)
-    final_submission = Column(Boolean, default=True)
-    
-    user = relationship("User", back_populates="submissions")
-    daily_challenge = relationship("Challenge", back_populates="submissions")
-
-# Define the Challenge model
-class Challenge(Base):
-    """
-    Challenge model for the database.
-    
-    Attributes:
-        id: The challenge ID for the database.
-        challenge_id: The unique ID of the challenge.
-        category: The category of the challenge.
-        original_challenge: The original challenge prompt.
-        date: The date of the challenge.
-        
-    Methods:
-        None
-    """
-    __tablename__ = 'daily_challenges'
-    id = Column(BigInteger, primary_key=True)
-    challenge_id = Column(String, unique=True, nullable=False)
-    category = Column(String, nullable=False)
-    original_challenge = Column(Text, nullable=False)
-    date = Column(Date, nullable=False)
-    
-    submissions = relationship("Submission", back_populates="daily_challenge")
 
 # Function to create a database connection
 def get_db_connection():
@@ -375,3 +172,5 @@ def drop_tables():
 # Uncomment these lines if you want to recreate the tables
 # drop_tables()
 create_tables()
+
+__all__ = ['User', 'Submission', 'Challenge', 'get_db_connection', 'get_user_by_email', 'create_user', 'insert_submission', 'update_username', 'phrase_already_submitted']

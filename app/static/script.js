@@ -238,3 +238,12 @@ function formatFeedback(feedback) {
         <p class='mt-3'><strong>Score:</strong> ${score}</p>
     `;
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('.truncated[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            delay: { "show": 500, "hide": 100 }
+        });
+    });
+});

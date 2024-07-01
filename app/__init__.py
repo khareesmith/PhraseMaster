@@ -4,6 +4,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 from flask_mail import Mail
 from flask_session import Session
+from flask_migrate import Migrate
 from authlib.integrations.flask_client import OAuth
 from config import Config
 
@@ -15,13 +16,15 @@ csrf = CSRFProtect()
 
 # Database connection
 db = SQLAlchemy()
+migrate = Migrate()
 
 def register_blueprints(app):
-    from app.routes import auth_bp, api_bp, view_bp
+    from app.routes import auth_bp, api_bp, view_bp, admin_bp
     blueprints = [
         (auth_bp, '/auth'),
         (api_bp, '/api'),
         (view_bp, '/'),
+        (admin_bp, '/admin')
     ]
     for blueprint, url_prefix in blueprints:
         app.register_blueprint(blueprint, url_prefix=url_prefix)
@@ -88,6 +91,7 @@ def create_app(config_class=Config):
     # Initialize the Flask SQLAlchemy extension
     db.init_app(app)
     app.config['SESSION_SQLALCHEMY'] = db
+    migrate.init_app(app, db)
     
     # Initialize the Flask Session extension
     Session(app)

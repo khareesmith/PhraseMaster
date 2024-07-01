@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Phrase Craze{% endblock %}
+
+{% block user_welcome %}
+<span class="navbar-text ms-3" id="username">
+Admin User: {{ session['user']['name'] }}
+</span>
+{% endblock %}
+
+{% block navbar_items %}
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+</li>
+
+{% if 'user' in session and session['user'].get('is_admin') %}
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-user-tie"></i> Admin Dashboard</a>
+    </li>
+{% endif %}
+
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
+    {{ super() }}
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Admin Dashboard</h1>
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <div class="card glass">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Users</h5>
+                    <p class="card-text display-4">{{ user_count }}</p>
+                    <a href="{{ url_for('admin.list_users') }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Manage Users</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card glass">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Submissions</h5>
+                    <p class="card-text display-4">{{ submission_count }}</p>
+                    <a href="{{ url_for('admin.list_submissions') }}" class="btn phrasecraze-btn phrasecraze-btn-primary">View Submissions</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card glass">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Challenges</h5>
+                    <p class="card-text display-4">{{ challenge_count }}</p>
+                    <a href="{{ url_for('admin.list_challenges') }}" class="btn phrasecraze-btn phrasecraze-btn-primary">Manage Challenges</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 card glass">
+        <div class="card-body">
+            <h2 class="card-title">Recent Submissions</h2>
+            <div class="table-responsive">
+                <table class="table admin-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Category</th>
+                            <th>Phrase</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in recent_submissions %}
+                        <tr>
+                            <td>{{ submission.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ submission.username }}</td>
+                            <td>{{ submission.formatted_category }}</td>
+                            <td>
+                                <span class="phrase-cell {% if submission.user_phrase|length > 80 %}truncated{% endif %}" 
+                                {% if submission.user_phrase|length > 80 %}data-bs-toggle="tooltip" title="{{ submission.user_phrase }}"{% endif %}>
+                                {{ submission.user_phrase[:80] }}{% if submission.user_phrase|length > 80 %}...{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -47,7 +47,7 @@ def login():
             
             # Check the password and redirect to choose_username if the user has not set a name
             if user_obj.check_password(password):
-                session['user'] = {'id': user_obj.id, 'name': user_obj.name, 'email': user_obj.email}
+                session['user'] = {'id': user_obj.id, 'name': user_obj.name, 'email': user_obj.email, 'is_admin': user_obj.is_admin}
                 session.modified = True
                 if user_obj.name is None:
                     return redirect(url_for('auth.choose_username'))

@@ -59,7 +59,7 @@ def authorize(provider):
         if user_record:
             user_dict = user_record._mapping
             user = session_db.query(User).filter_by(id=user_dict['id']).first()
-            session['user'] = {'id': user.id, 'name': user.name, 'email': user.email}
+            session['user'] = {'id': user.id, 'name': user.name, 'email': user.email, 'is_admin': user.is_admin}
             session.modified = True
             update_login_streak(user, session_db)
             session_db.commit()

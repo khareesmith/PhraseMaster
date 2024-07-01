@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Challenges - Phrase Craze{% endblock %}
+
+{% block user_welcome %}
+<span class="navbar-text ms-3" id="username">
+Admin User: {{ session['user']['name'] }}
+</span>
+{% endblock %}
+
+{% block navbar_items %}
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.index') }}"><i class="fa-solid fa-house"></i> Home</a>
+</li>
+
+{% if 'user' in session and session['user'].get('is_admin') %}
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-user-tie"></i> Admin Dashboard</a>
+    </li>
+{% endif %}
+
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-check-to-slot"></i> Vote</a>
+    {{ super() }}
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('view.profile') }}"><i class="fa-solid fa-gears"></i> Profile</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('auth.logout') }}"> <i class="fa-solid fa-right-to-bracket fa-rotate-180"></i> Logout</a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Manage Challenges</h1>
+    <div class="card glass">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Challenge</th>
+                        </tr>
+                    </thead>
+                    
+                    <tbody>
+                        {% for challenge in challenges %}
+                        <tr>
+                            <td>{{ challenge.id }}</td>
+                            <td>{{ challenge.formatted_category }}</td>
+                            <td>{{ challenge.date }}</td>
+                            <td>
+                                <span class="phrase-cell {% if challenge.original_challenge|length > 80 %}truncated{% endif %}" 
+                                {% if challenge.original_challenge|length > 80 %}data-bs-toggle="tooltip" title="{{ challenge.original_challenge }}"{% endif %}>
+                                {{ challenge.original_challenge[:80] }}{% if challenge.original_challenge|length > 80 %}...{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
