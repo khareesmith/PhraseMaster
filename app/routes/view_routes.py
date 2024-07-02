@@ -1,5 +1,5 @@
 from flask import Blueprint, request, session, redirect, url_for, flash, render_template
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 from sqlalchemy.sql import text
@@ -7,6 +7,9 @@ from app.models.db import get_db_connection, User, Submission
 from app.utils.vote import get_user_votes, increment_user_vote, reset_daily_votes, MAX_VOTES_PER_CATEGORY, format_category_name
 from app.utils.get_leaderboard import get_leaderboard
 import bleach
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Create a Blueprint for the view routes
@@ -57,8 +60,9 @@ def vote():
         user = session_db.query(User).filter_by(id=user_id).first()
         
         if user:
-            votes_used = get_user_votes(user, category)
-            votes_remaining = MAX_VOTES_PER_CATEGORY - votes_used   
+            yesterday = (date.today() - timedelta(days=1)).isoformat()
+            votes_used = user.votes_per_category.get(yesterday, {}).get(category, 0)
+            votes_remaining = MAX_VOTES_PER_CATEGORY - votes_used 
             
             if votes_remaining == 0:
                 progress_class = 'danger'
@@ -132,9 +136,10 @@ def vote():
             return redirect(url_for('view.vote', category=category))
         except Exception as e:
             session_db.rollback()
-            flash("An error occurred while casting your vote.", "error")
-            print(f"Error details: {str(e)}")
-            return render_template('main/error.html', error_message=f"An error occurred: {str(e)}")
+            error_message = f"An error occurred while casting your vote: {str(e)}"
+            logger.error(error_message, exc_info=True)
+            flash(error_message, "error")
+            return render_template('main/error.html', error_message=error_message)
         finally:
             session_db.close()
 

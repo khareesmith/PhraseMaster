@@ -1,8 +1,11 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import and_
 from app.models.db import User, get_db_connection
 from app.utils.streaks import update_voting_streak
 from sqlalchemy.orm.attributes import flag_modified
+import logging
+
+logger = logging.getLogger(__name__)
 
 MAX_VOTES_PER_CATEGORY = 5
 
@@ -35,30 +38,48 @@ def increment_user_vote(user, category, session_db):
         Returns the number of remaining votes for that category.
         Returns 0 if the user has reached the maximum number of votes for the category.
     """
-    today = date.today().isoformat()
-    if not user.votes_per_category:
-        user.votes_per_category = {}
-    if today not in user.votes_per_category:
-        user.votes_per_category[today] = {}
+    try:
+        today = date.today()
+        voting_date = (today - timedelta(days=1)).isoformat()  # Use yesterday's date for voting
+        logger.debug(f"Voting date: {voting_date}")
+        
+        if not user.votes_per_category:
+            user.votes_per_category = {}
+        
+        # Ensure the voting_date exists in votes_per_category
+        if voting_date not in user.votes_per_category:
+            user.votes_per_category[voting_date] = {}
+        
+        logger.debug(f"User's votes_per_category: {user.votes_per_category}")
+        
+        current_votes = user.votes_per_category[voting_date].get(category, 0)
+        logger.debug(f"Current votes for {category}: {current_votes}")
+        
+        if current_votes >= MAX_VOTES_PER_CATEGORY:
+            return 0
+
+        user.votes_per_category[voting_date][category] = current_votes + 1
+        user.daily_votes = sum(user.votes_per_category[voting_date].values())
+        user.last_vote_date = datetime.now()
+
+        logger.debug(f"Updated votes_per_category: {user.votes_per_category}")
+        logger.debug(f"Updated daily_votes: {user.daily_votes}")
+        logger.debug(f"Updated last_vote_date: {user.last_vote_date}")
+
+        flag_modified(user, "votes_per_category")
+        flag_modified(user, "daily_votes")
+        flag_modified(user, "last_vote_date")
+        
         update_voting_streak(user, session_db)
-
-    current_votes = user.votes_per_category[today].get(category, 0)
-    if current_votes >= MAX_VOTES_PER_CATEGORY:
-        return 0
-
-    user.votes_per_category[today][category] = current_votes + 1
-    user.daily_votes = sum(user.votes_per_category[today].values())
-    user.last_vote_date = datetime.now()
-
-    flag_modified(user, "votes_per_category")
-    flag_modified(user, "daily_votes")
-    flag_modified(user, "last_vote_date")
-    
-    session_db.add(user)
-    session_db.commit()  # Commit the changes here
-    
-    remaining_votes = MAX_VOTES_PER_CATEGORY - user.votes_per_category[today][category]
-    return max(remaining_votes, 0)
+        
+        session_db.add(user)
+        session_db.commit()
+        
+        remaining_votes = MAX_VOTES_PER_CATEGORY - user.votes_per_category[voting_date][category]
+        return max(remaining_votes, 0)
+    except Exception as e:
+        logger.error(f"Error in increment_user_vote: {str(e)}", exc_info=True)
+        raise
 
 def format_category_name(category):
     """

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from app.models.db import User
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 import logging
 from typing import Callable
 
@@ -44,12 +45,18 @@ def update_streak(user: User, session: Session, streak_type: str) -> None:
         elif last_date < today - timedelta(days=1):
             setattr(user, streak_attr, 1)
             logger.debug(f"Resetting {streak_type} streak to 1")
+        elif last_date == today:
+            # Already voted today, no need to update streak
+            logger.debug(f"Already updated {streak_type} streak today")
+            return
 
         setattr(user, last_date_attr, datetime.now())
+        
         session.commit()
     except Exception as e:
         logger.error(f"Error updating {streak_type} streak: {e}")
         session.rollback()
+        raise
 
 update_login_streak: Callable[[User, Session], None] = lambda user, session: update_streak(user, session, 'login')
 update_submission_streak: Callable[[User, Session], None] = lambda user, session: update_streak(user, session, 'submission')
