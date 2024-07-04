@@ -189,7 +189,6 @@ h2 {
 }
 
 /* Alert Styles */
-/* Alert Styles */
 .alert {
     display: inline-block;
     margin: 0 auto var(--spacing-md);
@@ -238,6 +237,17 @@ h2 {
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--glass-border);
     box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.37);
+}
+
+/* Timer Styles */
+#timer {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--dark-text-color);
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px;
+    border-radius: 10px;
+    display: inline-block;
 }
 
 /* Button Styles */

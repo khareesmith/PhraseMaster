@@ -44,6 +44,12 @@
     <h2 class="mb-4 mt-2 display-6 animate__animated animate__slideInUp">Select a category below to begin:</h2>
 </div>
 
+<div class="mt-2 text-center">
+    <div id="server-time" data-time="{{ server_time }}" style="display: none;"></div>
+    <p id="timer"></p>
+    <p class="text-muted">At midnight Eastern Time: New challenges will be available.</p>
+</div>
+
 <div class="">
     <section class="category-buttons btn-group-lg">
         <div class="row firstRow">
@@ -109,6 +115,9 @@
                 </div>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="text" id="phraseInput" class="form-control my-3 mx-auto" placeholder="Enter your phrase here...">
+                <div id="charCount" class="text-muted">
+                    <span id="currentCount">0</span>/<span id="maxCount">100</span> characters
+                </div>
                 <div class="toggle-container">
                     <span class="toggle-text-score">"Send It"</span>
                     <div class="toggle-switch">

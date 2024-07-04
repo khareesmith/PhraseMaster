@@ -117,7 +117,7 @@ def get_or_create_daily_challenge(category: str, session: Session) -> Tuple[Opti
         Exception: If there's an error in retrieving or creating the challenge.
     """
     
-    today = datetime.now(pytz.timezone('US/Eastern')).date()
+    today = datetime.now(current_app.config['TIMEZONE']).date()
     challenge_id = None
     challenge = None
 

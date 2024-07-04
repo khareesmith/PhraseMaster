@@ -1,4 +1,4 @@
-from flask import Blueprint, request, session, redirect, url_for, flash, render_template
+from flask import Blueprint, request, session, redirect, url_for, flash, render_template, current_app
 from datetime import datetime, timedelta, date
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
@@ -10,7 +10,6 @@ import bleach
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 # Create a Blueprint for the view routes
 view_bp = Blueprint('view', __name__)
@@ -26,7 +25,8 @@ def index():
     """
     Render the index page.
     """
-    return render_template('main/index.html')
+    et_now = datetime.now(current_app.config['TIMEZONE'])
+    return render_template('main/index.html', server_time=et_now.isoformat())
 
 # Route to the voting page
 @view_bp.route('/vote/', methods=['GET', 'POST'])
@@ -46,6 +46,7 @@ def vote():
     category = request.args.get('category')
     formatted_category = format_category_name(category)
     username = request.args.get('username')
+    et_now = datetime.now(current_app.config['TIMEZONE'])
     
     # Default values for non-logged-in users
     user = None
@@ -88,6 +89,11 @@ def vote():
             flash("Invalid CSRF token.", "error")
             return redirect(url_for('view.vote', category=category))
         
+        # Check if the user has reached the voting limit for this category
+        if votes_remaining <= 0:
+            flash(f"You have reached your voting limit for the {formatted_category} category.", "error")
+            return redirect(url_for('view.vote', category=category))
+        
         # Handle the vote submission
         voted_submission_id = request.form.get('submission_id')
         voted_submission_id = bleach.clean(voted_submission_id)
@@ -100,17 +106,6 @@ def vote():
         
         if submission_owner == session['user']['name']:
             flash("You cannot vote for your own submission.", "error")
-            return redirect(url_for('view.vote', category=category))
-        
-        # Check if the user has reached the voting limit for this category
-        votes_today = get_user_votes(user, category)
-        
-        if votes_today is None:
-            flash("An error occurred while retrieving your vote count.", "error")
-            return redirect(url_for('view.vote', category=category))
-        
-        if votes_today >= MAX_VOTES_PER_CATEGORY:
-            flash(f"You have reached your voting limit for the {formatted_category} category.", "error")
             return redirect(url_for('view.vote', category=category))
         
         # Update the vote count for the selected submission
@@ -144,11 +139,10 @@ def vote():
             session_db.close()
 
     # Handle GET request: Fetch the category from the query parameters
-    if category:
+    if request.method == 'GET' and category:
         try:
             # Calculate the date for the previous day
-            yesterday = datetime.now() - timedelta(days=1)
-            yesterday_date = yesterday.date()
+            yesterday = (et_now - timedelta(days=1)).date()
             
             # Fetch two random submissions from the previous day for the given category
             submissions_result = session_db.execute(
@@ -160,7 +154,7 @@ def vote():
                     ORDER BY RANDOM() 
                     LIMIT 2
                 '''),
-                {'category': category, 'yesterday_date': yesterday_date}
+                {'category': category, 'yesterday_date': yesterday}
             ).fetchall()
             
             submissions = [{column: value for column, value in zip(['id', 'username', 'category', 'challenge', 'user_phrase', 'votes'], submission)} for submission in submissions_result]
@@ -196,7 +190,8 @@ def vote():
                         max_votes=MAX_VOTES_PER_CATEGORY,
                         progress_class=progress_class,
                         progress_width=progress_width,
-                        user=user)
+                        user=user,
+                        server_time=et_now.isoformat())
 
         # Handle exceptions
         except Exception as e:
@@ -250,6 +245,7 @@ def confirm_email():
 def leaderboards():
     categories = ['tiny_story', 'scene_description', 'specific_word', 'rhyming_phrase', 'emotion', 'dialogue', 'idiom', 'slogan', 'movie_quote']
     today = datetime.now().date()
+    et_now = datetime.now(current_app.config['TIMEZONE'])
     daily_leaderboards = {}
     weekly_leaderboards = {}
     monthly_leaderboards = {}
@@ -263,4 +259,5 @@ def leaderboards():
                             daily_leaderboards=daily_leaderboards,
                             weekly_leaderboards=weekly_leaderboards,
                             monthly_leaderboards=monthly_leaderboards,
-                            categories=categories)
+                            categories=categories,
+                            server_time=et_now.isoformat())

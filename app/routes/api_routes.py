@@ -98,6 +98,9 @@ def submit_phrase():
         if len(user_phrase) < 3:
             return jsonify({'error': 'Phrase must be at least 3 characters long.'}), 400
         
+        if len(user_phrase) > 150:  # Adjust to match script.js limit
+            return jsonify({'error': 'Character limit exceeded'}), 400
+        
         # Check if the user has already submitted a phrase for the category today
         if phrase_already_submitted(session_db, user_id, category, current_date):
             return jsonify({'error': 'You have already submitted a phrase for this category today.'}), 400

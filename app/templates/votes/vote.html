@@ -103,6 +103,12 @@
         </ul>
     </div>
 
+    <div class="mt-2 text-center">
+        <div id="server-time" data-time="{{ server_time }}" style="display: none;"></div>
+        <p id="timer"></p>
+        <p class="text-muted">At midnight Eastern Time: Voting for yesterday's challenges will be available.</p>
+    </div>
+
     <div class="mt-4 row"> 
         <form action="{{ url_for('view.vote') }}" method="GET" class="d-flex align-items-center justify-content-center">
             <div class="form-group me-3" style="width: 180px;">
@@ -133,6 +139,8 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ super() }}
+
 <script nonce="{{ csp_nonce() }}">
     var todaydate = new Date();
     var day = todaydate.getDate();

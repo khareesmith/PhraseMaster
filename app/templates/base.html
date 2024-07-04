@@ -82,7 +82,6 @@
         {% for category, message in messages %}
             <div id="flash-{{ loop.index }}" class="alert alert-{{ 'danger' if category == 'error' else 'success' }} flash-message">
                 {{ message }}
-                <button type="button" class="close-btn" data-flash-id="flash-{{ loop.index }}">&times;</button>
             </div>
         {% endfor %}
         {% endwith %}
@@ -130,14 +129,6 @@
                 setTimeout(function() {
                     removeFlash(flash.id);
                 }, 5000);
-            });
-
-            // Add event listeners for close buttons
-            document.querySelectorAll('.close-btn').forEach(function(button) {
-                button.addEventListener('click', function() {
-                    var flashId = this.getAttribute('data-flash-id');
-                    removeFlash(flashId);
-                });
             });
         });
     </script>

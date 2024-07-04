@@ -1,8 +1,6 @@
 # config.py
 import os
-# from dotenv import load_dotenv
-
-# load_dotenv()
+import pytz
 
 class Config:
     """
@@ -18,6 +16,8 @@ class Config:
     
     # Session management
     SESSION_TYPE = os.environ.get('SESSION_TYPE', 'sqlalchemy')
+    
+    TIMEZONE = pytz.timezone('US/Eastern')
     
     # Database configuration
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
+from flask import current_app
 from app.models.db import User
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.attributes import flag_modified
 import logging
 from typing import Callable
 
@@ -33,7 +33,7 @@ def update_streak(user: User, session: Session, streak_type: str) -> None:
     last_date_attr, streak_attr = streak_attributes[streak_type]
 
     try:
-        today = datetime.now().date()
+        today = datetime.now(current_app.config['TIMEZONE']).date()
         last_date = getattr(user, last_date_attr)
         last_date = last_date.date() if isinstance(last_date, datetime) else last_date
         
